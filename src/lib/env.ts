@@ -18,6 +18,36 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+/**
+ * Ympäristömuuttujien nimet vaihtelevat asennustavan mukaan:
+ *
+ *  - Käsin asetettuna (tämä repo, .env.example):
+ *    NEXT_PUBLIC_SUPABASE_URL ja SUPABASE_SERVICE_ROLE_KEY
+ *  - Vercelin Supabase-integraatio asentaa samat arvot eri nimillä:
+ *    SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL ja SUPABASE_SECRET_KEY
+ *
+ * Molemmat nimet luetaan, jotta sovellus toimii kummassakin tapauksessa.
+ * Arvoja ei koskaan kirjoiteta lokiin eikä palauteta virheilmoituksissa.
+ */
+export function resolveSupabaseEnv(source: Record<string, string | undefined>): {
+  url: string | undefined;
+  serviceKey: string | undefined;
+  anonKey: string | undefined;
+} {
+  const firstNonEmpty = (...values: (string | undefined)[]): string | undefined =>
+    values.find((value) => typeof value === "string" && value.trim().length > 0);
+
+  return {
+    url: firstNonEmpty(source.NEXT_PUBLIC_SUPABASE_URL, source.SUPABASE_URL),
+    serviceKey: firstNonEmpty(source.SUPABASE_SERVICE_ROLE_KEY, source.SUPABASE_SECRET_KEY),
+    anonKey: firstNonEmpty(
+      source.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      source.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+      source.SUPABASE_PUBLISHABLE_KEY,
+    ),
+  };
+}
+
 const serverEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z
     .string()
@@ -54,7 +84,8 @@ export class EnvConfigurationError extends Error {
     super(
       `Supabase-ympäristömuuttujat puuttuvat tai ovat virheellisiä: ${missing.join(", ")}. ` +
         "Aseta ne tiedostoon .env.local (tai config/.env) ja käynnistä palvelin uudelleen. " +
-        "Katso .env.example.",
+        "Katso .env.example. Vercelin Supabase-integraatiota käytettäessä " +
+        "SUPABASE_SECRET_KEY ja SUPABASE_URL kelpaavat myös.",
     );
     this.name = "EnvConfigurationError";
     this.missing = missing;
@@ -68,11 +99,13 @@ export function getServerEnv(): ServerEnv {
     return cachedEnv;
   }
 
+  const resolved = resolveSupabaseEnv(process.env);
+
   const parsed = serverEnvSchema.safeParse({
-    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    NEXT_PUBLIC_SUPABASE_URL: resolved.url,
+    SUPABASE_SERVICE_ROLE_KEY: resolved.serviceKey,
     HOST_PASSCODE: process.env.HOST_PASSCODE,
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: resolved.anonKey,
   });
 
   if (!parsed.success) {

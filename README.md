@@ -312,6 +312,47 @@ Huomioitavaa:
   TypeScriptin mutta ei ESLintia. Jos haluat portinvartijan, lisää GitHub Action, joka ajaa
   `npm run check`.
 
+### Supabasen Vercel-integraatio
+
+Vercelin Marketplace-tarjonnassa on valmis Supabase-integraatio. Se **ei ole pakollinen** tälle
+sovellukselle, mutta se tekee seuraavat asiat:
+
+1. **Synkronoi ympäristömuuttujat automaattisesti.** Supabase-projektin arvot tulevat Vercelin
+   ympäristömuuttujiksi ilman käsin kopiointia, ja ne pysyvät ajan tasalla, jos avaimet
+   vaihdetaan.
+2. **Preview branches.** Jokaiselle esijulkaisulle voidaan luoda oma Supabase-haara: erillinen
+   instanssi, joka on oletuksena **tyhjä ilman dataa** ja jonka skeema rakennetaan repositorion
+   `supabase/migrations`-tiedostoista. Näin esijulkaisu ei voi koskea oikeaan pelidataan.
+3. **Verkkotunnusten automaattinen sallinta** Supabasessa. Tälle sovellukselle tarpeeton, koska
+   sovellus ei käytä Supabase Authia.
+4. **Laskutus Vercelin kautta**, jos Supabase-projekti luodaan Vercelin kautta.
+
+Integraatio asentaa muuttujat **eri nimillä** kuin tässä repossa on totuttu:
+
+```text
+POSTGRES_URL, POSTGRES_PRISMA_URL, POSTGRES_URL_NON_POOLING, POSTGRES_USER,
+POSTGRES_HOST, POSTGRES_PASSWORD, POSTGRES_DATABASE,
+SUPABASE_URL, NEXT_PUBLIC_SUPABASE_URL,
+SUPABASE_PUBLISHABLE_KEY, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+SUPABASE_SECRET_KEY
+```
+
+Tämä sovellus lukee **molemmat nimeämiskäytännöt** (`resolveSupabaseEnv` tiedostossa
+`src/lib/env.ts`), joten integraatiota voi käyttää sellaisenaan. Ilman tätä tukea sovellus olisi
+kaatunut, koska integraatio ei aseta lainkaan muuttujaa `SUPABASE_SERVICE_ROLE_KEY`.
+
+**Mitä integraatio ei tee:** se ei aja migraatioita tuotantoprojektiisi. Se hoituu erikseen
+Supabasen GitHub-integraatiolla (kohta 4).
+
+**Milloin siitä on hyötyä:** jos haluat esijulkaisujen käyttävän omaa tyhjää tietokantaa tai
+haluat avainten synkronoituvan automaattisesti. **Milloin se on tarpeeton:** yhden illan
+pikkujoulusovellukselle, jossa kaikki työ tehdään `main`-haaraan, käsin asetetut kaksi muuttujaa
+riittävät ja ovat yksinkertaisempia.
+
+> Jos asennat integraation, poista käsin asettamasi päällekkäiset muuttujat. Integraation
+> hallitsemia muuttujia ei voi muokata käsin, joten päällekkäisyys tekee vaikeaksi tietää,
+> kumpi arvo on voimassa.
+
 ### Julkaisun jälkeen
 
 - Aja migraatiot tuotannon Supabase-projektiin (kohta 4). GitHub-integraatio hoitaa tämän
