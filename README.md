@@ -256,20 +256,66 @@ Testikattavuus:
 
 ## 9. Tuotantojulkaisu
 
+### Oma palvelin tai Docker
+
 ```bash
 npm run build
 npm run start
 ```
 
-Julkaisuun tarvitaan ympäristömuuttujat (Vercel, Docker, oma palvelin):
+### Vercel
 
-1. `NEXT_PUBLIC_SUPABASE_URL`
-2. `SUPABASE_SERVICE_ROLE_KEY` – aseta **vain palvelinpuolen** ympäristömuuttujana
-3. `NEXT_PUBLIC_APP_URL` – julkinen osoite, jotta QR-koodi toimii (esim. `https://visa.example.com`)
+Vercel tunnistaa Next.js-projektin automaattisesti, eikä `vercel.json`-tiedostoa tarvita.
+Repositorion kytkeminen riittää – mutta **ympäristömuuttujat on pakko asettaa**, muuten
+sovellus kyllä käynnistyy mutta jokainen API-kutsu epäonnistuu.
 
-Julkaisun jälkeen:
+1. **Yhdistä repositorio.** vercel.com → *Add New… → Project* → *Import Git Repository* →
+   valitse `tietovisa`. Framework Preset = *Next.js*, Root Directory = `.`,
+   Build Command = `npm run build` (oletus), Output Directory = oletus.
+2. **Aseta ympäristömuuttujat** (*Environment Variables*) ennen ensimmäistä julkaisua.
+   Valitse kaikki kolme ympäristöä (Production, Preview, Development), jos haluat
+   esijulkaisujen toimivan.
+3. **Julkaise.** Ensimmäinen julkaisu antaa osoitteen `https://<projekti>.vercel.app`.
+4. **Jatko julkaisut ovat automaattisia:** jokainen `git push` main-haaraan julkaisee uuden
+   version, ja Supabasen GitHub-integraatio ajaa samalla uudet migraatiot.
 
-- Aja migraatiot tuotannon Supabase-projektiin (kohta 4).
+| Muuttuja | Pakollinen | Milloin luetaan |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | kyllä | buildissa ja ajonaikaisesti |
+| `SUPABASE_SERVICE_ROLE_KEY` | kyllä | ajonaikaisesti (merkitse *Sensitive*) |
+| `HOST_PASSCODE` | ei – suositus julkisessa osoitteessa | ajonaikaisesti |
+| `NEXT_PUBLIC_APP_URL` | ei | **buildissa**: `NEXT_PUBLIC_`-arvot upotetaan koodiin |
+
+Huomioitavaa:
+
+- Jos `NEXT_PUBLIC_APP_URL` jätetään asettamatta, QR-koodi muodostetaan selaimen nykyisestä
+  osoitteesta. Vercelissä se on aina oikein, myös esijulkaisuissa. Aseta muuttuja vain, jos
+  haluat pakottaa tietyn verkkotunnuksen.
+- `NEXT_PUBLIC_`-muuttujan muuttaminen vaatii uuden julkaisun. Pelkän palvelinpuolen muuttujan
+  (`SUPABASE_SERVICE_ROLE_KEY`, `HOST_PASSCODE`) muutos riittää käynnistykseen.
+- Vercel käyttää oletuksena Node.js 24.x, mikä kelpaa: Next.js 16 vaatii vähintään 20.9.
+- Supabasen puolella ei tarvita lisäasetuksia. Sovellus ei käytä Supabase Authia eikä selain
+  keskustele Supabasen kanssa, joten verkkotunnusten sallintaa ei tarvita.
+
+### Vercelissä eri tavalla käyttäytyvät asiat
+
+- **Nopeusrajoitus on instanssikohtainen.** Rajoitin on muistissa ja Vercel ajaa useita
+  instansseja, joten tehollinen raja on löysempi kuin yhdellä palvelimella.
+  `HOST_PASSCODE` on siksi suositeltu julkisessa osoitteessa. Jaettu rajoitin vaatisi erillisen
+  varaston (esim. Redis).
+- **Kysely tuottaa paljon funktiokutsuja.** Pelaaja kysyy tilaa noin kerran sekunnissa, joten
+  kahden tunnin peli 30 pelaajalla on noin 200 000 pyyntöä. Yhdelle pikkujouluille tämä on
+  hyvin ok, mutta tarkista oman tilisi rajat. Tarvittaessa kyselyväliä voi kasvattaa
+  (`src/hooks/useRoomState.ts`).
+- **Kylmäkäynnistys** voi hidastaa ensimmäistä pyyntöä noin sekunnin verran.
+- **Playwright-testit eivät aja Vercelissä.** Julkaisu ajaa vain `npm run build`, joka tarkistaa
+  TypeScriptin mutta ei ESLintia. Jos haluat portinvartijan, lisää GitHub Action, joka ajaa
+  `npm run check`.
+
+### Julkaisun jälkeen
+
+- Aja migraatiot tuotannon Supabase-projektiin (kohta 4). GitHub-integraatio hoitaa tämän
+  automaattisesti noin minuutissa pushista.
 - Testaa peli vähintään kahdella eri selaimella ja puhelimella.
 
 ---
