@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiRequest } from "@/lib/api/client";
+import { nextPollDelayMs } from "@/lib/polling";
 import { computeClockOffset } from "@/lib/time";
 
 /**
@@ -13,8 +14,8 @@ import { computeClockOffset } from "@/lib/time";
  * Realtime-kanavia, jotta anon-rooli ei tarvitsisi lukuokeuksia
  * pelaajiin, vastauksiin tai oikeisiin vastauksiin.
  *
- * Kysely taukoaa, kun välilehti on piilossa, ja jatkuu heti, kun
- * välilehti palaa näkyviin tai verkkoyhteys palautuu.
+ * Kysely hidastuu, kun välilehti on piilossa, ja palaa normaaliin vauhtiin
+ * heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu.
  */
 
 type StateShape = {
@@ -39,8 +40,6 @@ export type RoomStateResult<T> = {
   lastUpdatedAt: number | null;
   refresh: () => Promise<void>;
 };
-
-const FINISHED_INTERVAL_MS = 5000;
 
 export function useRoomState<T extends StateShape>({
   roomId,
@@ -102,11 +101,18 @@ export function useRoomState<T extends StateShape>({
     let timeoutId: number | undefined;
 
     const tick = () => {
-      if (disposedRef.current || document.visibilityState === "hidden") {
+      if (disposedRef.current) {
         return;
       }
 
-      const delay = statusRef.current === "finished" ? FINISHED_INTERVAL_MS : intervalMs;
+      // Kyselyä ei pysäytetä piilotetussa välilehdessä, vain hidastetaan:
+      // juontajan pitää nähdä uudet pelaajat myös, jos ikkuna ei ole näkyvissä.
+      const delay = nextPollDelayMs({
+        hidden: document.visibilityState === "hidden",
+        status: statusRef.current,
+        intervalMs,
+      });
+
       void fetchOnce();
       timeoutId = window.setTimeout(tick, delay);
     };

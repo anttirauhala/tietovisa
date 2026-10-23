@@ -106,8 +106,12 @@ Migraatiot voi ajaa uudelleen turvallisesti: taulut luodaan `if not exists` -ehd
 ## 5. Reaaliaikaisuus
 
 Tässä toteutuksessa reaaliaikaisuus hoidetaan **palvelinvälitteisellä tilakyselyllä**:
-selain hakee `GET /api/rooms/[roomId]/state` noin sekunnin välein (ja heti, kun välilehti palaa
-näkyviin tai verkkoyhteys palautuu). Kysely taukoaa, kun välilehti on piilossa.
+selain hakee `GET /api/rooms/[roomId]/state` noin sekunnin välein (juontaja 900 ms, pelaaja
+1 100 ms) ja heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu.
+
+Kyselyä **ei koskaan pysäytetä**: jos välilehti on piilossa, väliä pidennetään 4 sekuntiin ja
+pelin päätyttyä 5 sekuntiin. Tämä on tärkeää juontajalle – muuten uusien pelaajien liittyminen
+näkyisi vasta, kun hän palaa selainvälilehdelle (esim. vaihdettuaan musiikkisovellukseen).
 
 Miksi näin eikä suoralla Supabase Realtime -tilauksella:
 
