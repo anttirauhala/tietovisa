@@ -25,6 +25,18 @@ const serverEnvSchema = z.object({
     .min(1)
     .refine(isHttpUrl, { message: "NEXT_PUBLIC_SUPABASE_URL ei ole kelvollinen URL-osoite." }),
   SUPABASE_SERVICE_ROLE_KEY: z.string().trim().min(20),
+
+  /**
+   * Valinnainen juontajan tunnuslause.
+   *
+   * Jos tämä on asetettu, uuden pelin luominen vaatii saman tunnuslauseen.
+   * Tarkoitettu julkisiin asennuksiin, joissa kuka tahansa voi löytää
+   * sivuston. Tyhjä = luonti on avoin (oletus, sopii pikkujouluihin).
+   *
+   * SALAINEN: ei koskaan NEXT_PUBLIC_-etuliitettä.
+   */
+  HOST_PASSCODE: z.string().trim().min(4).max(128).optional(),
+
   /**
    * Julkinen avain on mukana yhteensopivuuden ja dokumentaation vuoksi.
    * Selain ei kuitenkaan keskustele Supabasen kanssa suoraan, joten sitä ei
@@ -59,6 +71,7 @@ export function getServerEnv(): ServerEnv {
   const parsed = serverEnvSchema.safeParse({
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    HOST_PASSCODE: process.env.HOST_PASSCODE,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   });
 

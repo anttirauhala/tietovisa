@@ -3,12 +3,15 @@
 import { useSyncExternalStore } from "react";
 
 import {
+  HOST_PASSCODE_STORAGE_KEY,
   HOST_SESSION_STORAGE_KEY,
+  loadHostPasscode,
   loadHostSession,
   loadPlayerSession,
   PLAYER_SESSION_STORAGE_KEY,
   type HostSession,
   type PlayerSession,
+  type StoredPasscode,
 } from "@/lib/session";
 
 /**
@@ -75,4 +78,9 @@ export const useHostSession = createStoredValueHook<HostSession>(
 export const usePlayerSession = createStoredValueHook<PlayerSession>(
   PLAYER_SESSION_STORAGE_KEY,
   loadPlayerSession,
+);
+
+export const useHostPasscode = createStoredValueHook<StoredPasscode>(
+  HOST_PASSCODE_STORAGE_KEY,
+  loadHostPasscode,
 );

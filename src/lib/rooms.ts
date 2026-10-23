@@ -17,10 +17,34 @@ import { createRoomPin, createSessionToken, hashToken } from "@/lib/tokens";
 
 const PIN_ATTEMPTS = 10;
 
+/**
+ * Kuinka vanhat huoneet siivotaan pois uuden huoneen luonnin yhteydessä.
+ * Huoneen luonti on ainoa kohta, jossa syntyy uutta dataa ilman istuntoa,
+ * joten siivous on luontevaa tehdä siinä – erillistä ajastettua tehtävää
+ * tai taustapalvelua ei tarvita.
+ */
+const PURGE_OLDER_THAN_HOURS = 24;
+
 type RpcPayload = Record<string, unknown>;
 
 function isRecord(value: unknown): value is RpcPayload {
   return typeof value === "object" && value !== null;
+}
+
+/** Poistaa vanhentuneet huoneet. Parasta yritystä: ei kaada huoneen luontia. */
+async function purgeOldRooms(): Promise<void> {
+  try {
+    const { error } = await getSupabaseAdmin().rpc("purge_old_rooms", {
+      p_older_than_hours: PURGE_OLDER_THAN_HOURS,
+    });
+
+    if (error) {
+      // Ei kirjata virhettä käyttäjälle: siivous ei ole kriittinen toimenpide.
+      console.warn("[tietovisa] vanhojen huoneiden siivous ohitettiin:", error.code ?? "tuntematon");
+    }
+  } catch {
+    // Verkkoyhteys tms. – jatketaan huoneen luontia.
+  }
 }
 
 async function callRpc(functionName: string, params: RpcPayload): Promise<RpcPayload> {
@@ -49,6 +73,8 @@ function requireOk(payload: RpcPayload): RpcPayload {
 export async function createRoom(): Promise<{ roomId: string; pin: string; hostToken: string }> {
   const hostToken = createSessionToken();
   const hostTokenHash = hashToken(hostToken);
+
+  await purgeOldRooms();
 
   for (let attempt = 0; attempt < PIN_ATTEMPTS; attempt += 1) {
     const pin = createRoomPin();

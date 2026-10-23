@@ -112,6 +112,51 @@ describe("SQL-migraatiot", () => {
       "answers_player_question_key",
     );
   });
+
+  it("luo indeksin huoneen luontiajalle (siivousta varten)", async () => {
+    const indexes = await db.query<{ indexname: string }>(
+      `select indexname from pg_indexes where schemaname = 'public' and tablename = 'rooms'`,
+    );
+
+    expect(indexes.rows.map((row) => row.indexname)).toContain("rooms_created_at_idx");
+  });
+});
+
+describe("vanhojen huoneiden siivous", () => {
+  it("poistaa vanhentuneen huoneen ja siihen liittyvät pelaajat", async () => {
+    const roomId = await callRpc<string>(db, "create_room", ["500001", TOKEN_HASH_A]);
+    await callRpcStatus(db, "join_room", ["500001", "Vanha Pelaaja", TOKEN_HASH_B]);
+
+    // Merkitään huone kahden vuorokauden ikäiseksi.
+    await db.query(
+      `update public.rooms set created_at = now() - interval '48 hours' where id = $1`,
+      [roomId],
+    );
+
+    const deleted = await callRpc<number>(db, "purge_old_rooms", [24]);
+    expect(deleted).toBeGreaterThanOrEqual(1);
+
+    const rooms = await db.query(`select id from public.rooms where id = $1`, [roomId]);
+    const players = await db.query(`select id from public.players where room_id = $1`, [roomId]);
+
+    expect(rooms.rows).toHaveLength(0);
+    expect(players.rows).toHaveLength(0);
+  });
+
+  it("ei poista tuoreita huoneita", async () => {
+    const roomId = await callRpc<string>(db, "create_room", ["500002", TOKEN_HASH_A]);
+
+    await callRpc<number>(db, "purge_old_rooms", [24]);
+
+    const rooms = await db.query(`select id from public.rooms where id = $1`, [roomId]);
+    expect(rooms.rows).toHaveLength(1);
+  });
+
+  it("ei poista mitään, jos aikaraja on virheellinen", async () => {
+    expect(await callRpc<number>(db, "purge_old_rooms", [0])).toBe(0);
+    expect(await callRpc<number>(db, "purge_old_rooms", [-5])).toBe(0);
+    expect(await callRpc<number>(db, "purge_old_rooms", [null])).toBe(0);
+  });
 });
 
 describe("huoneen luonti ja liittyminen", () => {

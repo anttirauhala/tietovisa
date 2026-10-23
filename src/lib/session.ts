@@ -8,10 +8,12 @@
 
 const HOST_KEY = "tietovisa:host-session";
 const PLAYER_KEY = "tietovisa:player-session";
+const HOST_PASSCODE_KEY = "tietovisa:host-passcode";
 
 /** Tallennusavaimet (käytetään myös useSyncExternalStore-pohjaisissa hookeissa). */
 export const HOST_SESSION_STORAGE_KEY = HOST_KEY;
 export const PLAYER_SESSION_STORAGE_KEY = PLAYER_KEY;
+export const HOST_PASSCODE_STORAGE_KEY = HOST_PASSCODE_KEY;
 
 export type HostSession = {
   roomId: string;
@@ -128,4 +130,28 @@ export function loadPlayerSession(): PlayerSession | null {
 
 export function clearPlayerSession(): void {
   remove(PLAYER_KEY);
+}
+
+/**
+ * Juontajan tunnuslause muistetaan tässä selaimessa, jotta sitä ei tarvitse
+ * kirjoittaa uudelleen joka kerta. Tunnuslause on palvelimen salaisuus –
+ * selaimessa säilytetään vain käyttäjän oma syöte.
+ */
+export type StoredPasscode = { value: string };
+
+export function loadHostPasscode(): StoredPasscode | null {
+  const raw = readJson(HOST_PASSCODE_KEY);
+  if (!raw) {
+    return null;
+  }
+  const value = asString(raw.value);
+  return value ? { value } : null;
+}
+
+export function saveHostPasscode(value: string): void {
+  if (value.length === 0) {
+    remove(HOST_PASSCODE_KEY);
+    return;
+  }
+  writeJson(HOST_PASSCODE_KEY, { value });
 }

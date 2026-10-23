@@ -147,8 +147,31 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_…
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | kyllä | Supabase-projektin URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | kyllä | Palvelinpuolen salainen avain. Käytetään **vain** route handlereissa. Ohittaa RLS:n. |
+| `HOST_PASSCODE` | ei | Jos asetettu, uuden pelin luominen vaatii tämän tunnuslauseen. Tarkoitettu julkisiin asennuksiin. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ei | Julkinen avain. Selain ei keskustele Supabasen kanssa suoraan, joten tätä ei tarvita ajonaikaisesti. |
 | `NEXT_PUBLIC_APP_URL` | ei | Julkinen osoite, jota QR-koodi käyttää. Ilman tätä käytetään selaimen nykyistä osoitetta. |
+
+### Uuden pelin luonnin suojaaminen
+
+Huoneen luonti on oletuksena avointa: pelaajat ja juontaja pääsevät aloittamaan ilman
+kirjautumista. Jos sovellus on julkisessa osoitteessa, kuka tahansa löytäjä voi luoda huoneita.
+
+Aseta silloin palvelimelle tunnuslause:
+
+```dotenv
+HOST_PASSCODE=pikkujoulu-2026
+```
+
+Tämän jälkeen:
+
+- `POST /api/rooms` vaatii saman tunnuslauseen ja palauttaa muuten `401`.
+- Juontajan sivu kysyy tunnuslausetta automaattisesti (`GET /api/rooms` kertoo, tarvitaanko sitä)
+  ja muistaa sen selaimessa seuraavaa kertaa varten.
+- Pelaajien liittyminen ei muutu mitenkään.
+- Vertailu tehdään vakioaikaisesti tiivisteitä vertaamalla, eikä tunnuslausetta koskaan
+  palauteta virheilmoituksissa.
+
+Tunnuslause kannattaa vaihtaa pikkujoulujen jälkeen, jos sovellus jää julkiseksi.
 
 Tiedostot voi sijoittaa myös hakemistoon `config/.env` – `next.config.ts` lataa sen erikseen.
 Kaikki `.env*`-tiedostot ja `config/.env*` on lisätty `.gitignore`-tiedostoon.
@@ -385,7 +408,9 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 | Pelaajan vastaukset | Token + huonejäsenyys + kysymysindeksi + määräaika tarkistetaan palvelimella |
 | Oikea vastaus | Lähetetään pelaajalle vain tulosvaiheessa (`question_result`, `leaderboard`, `finished`) |
 | Syötteiden validointi | Zod kaikille pyynnöille; nimimerkki 2–24 merkkiä, sallitut merkit rajattu |
-| Nopeusrajoitus | Muistinvarainen liukuva ikkuna liittymiselle, huoneen luonnille ja vastauksille |
+| Nopeusrajoitus | Muistinvarainen liukuva ikkuna: liittyminen, huoneen luonti (5/min ja 20/h per IP) ja vastaukset |
+| Avoin huoneen luonti | Voidaan suojata `HOST_PASSCODE`-tunnuslauseella. Vertailu vakioaikaisesti, tunnuslausetta ei koskaan palauteta vastauksissa. |
+| Vanhentunut data | Huoneet poistetaan automaattisesti 24 tunnin jälkeen uuden huoneen luonnin yhteydessä (kaskadi poistaa pelaajat ja vastaukset) |
 | Virheilmoitukset | Suomenkielisiä, eivät sisällä SQL-virheitä eivätkä salaisuuksia |
 
 ---
@@ -402,8 +427,10 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
   Testit on ajettu Chromiumilla; Safari ja Firefox eivät ole testatussa joukossa.
 - **Testattu vain Chromiumilla ja yhdellä koneella.** Oikeilla puhelimilla (iOS Safari,
   Android Chrome) testaaminen jäi tekemättä, koska käytettävissä ei ollut laitteita.
-- **Huoneita ei siivota automaattisesti.** Vanhat huoneet ja pelaajat jäävät kantaan. Ne voi
-  poistaa tarvittaessa: `delete from public.rooms where created_at < now() - interval '7 days'`.
+- **Huoneet siivotaan automaattisesti 24 tunnin jälkeen** uuden huoneen luonnin yhteydessä.
+  Siivous on parasta yritystä eikä kaada huoneen luontia, jos se epäonnistuu. Jos haluat säilyttää
+  tulokset pidempään, ota siivous pois päältä tai pidennä aikarajaa
+  (`src/lib/rooms.ts` → `PURGE_OLDER_THAN_HOURS`).
 - **Juontajan istunto on selainkohtainen.** Jos selaimen tiedot tyhjennetään kesken pelin,
   peliä ei voi enää hallita – uusi peli pitää luoda.
 - **Pelaaja ei voi palata peliin uudella laitteella.** Istunto on sidottu selaimeen;

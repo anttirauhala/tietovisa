@@ -28,7 +28,14 @@ export const pinSchema = z
 
 export const roomIdSchema = z.string().uuid("Pelihuoneen tunniste ei ole kelvollinen.");
 
-export const createRoomRequestSchema = z.object({});
+/**
+ * Uuden huoneen luonti. `passcode` vaaditaan vain, jos palvelimelle on
+ * asetettu HOST_PASSCODE. Skeema hyväksyy sen aina, ja palvelin päättää
+ * tarvitaanko sitä.
+ */
+export const createRoomRequestSchema = z.object({
+  passcode: z.string().max(128, "Tunnuslause on liian pitkä.").optional(),
+});
 
 export const joinRoomRequestSchema = z.object({
   pin: pinSchema,

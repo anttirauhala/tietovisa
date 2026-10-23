@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, Ticket } from "lucide-react";
-import { useCallback, useState } from "react";
+import { Lock, Plus, Ticket } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Button, Card, Notice } from "@/components/ui";
-import { useHostSession } from "@/hooks/useStoredValue";
+import { useHostPasscode, useHostSession } from "@/hooks/useStoredValue";
 import { apiRequest } from "@/lib/api/client";
-import { saveHostSession } from "@/lib/session";
+import { saveHostPasscode, saveHostSession } from "@/lib/session";
 
 type CreateRoomResponse = {
   roomId: string;
@@ -16,22 +16,58 @@ type CreateRoomResponse = {
   hostToken: string;
 };
 
+type RoomOptionsResponse = {
+  passcodeRequired: boolean;
+};
+
 /**
- * Juontajan aloitusnäkymä: uuden pelin luonti ja aiemman pelin jatkaminen.
+ * Juontajan aloitusnäkymä: uuden pelin luonti ja aieman pelin jatkaminen.
+ *
+ * Jos palvelimelle on asetettu HOST_PASSCODE, uuden pelin luonti vaatii
+ * tunnuslauseen. Sivu kysyy sen palvelimelta (GET /api/rooms), joten
+ * tunnuslausekenttä näytetään vain silloin kun sitä tarvitaan.
  */
 export default function HostStartPage() {
   const router = useRouter();
   const existing = useHostSession();
+  const storedPasscode = useHostPasscode();
+
+  const [passcodeRequired, setPasscodeRequired] = useState(false);
+  const [editedPasscode, setEditedPasscode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Tallennettu tunnuslause näytetään, kunnes käyttäjä muokkaa kenttää.
+  const passcode = editedPasscode ?? storedPasscode?.value ?? "";
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const result = await apiRequest<RoomOptionsResponse>("/api/rooms");
+      if (!cancelled && result.ok) {
+        setPasscodeRequired(result.data.passcodeRequired);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const createRoom = useCallback(async () => {
     setIsCreating(true);
     setError(null);
 
+    if (passcodeRequired && passcode.trim().length === 0) {
+      setError("Syötä juontajan tunnuslause.");
+      setIsCreating(false);
+      return;
+    }
+
     const result = await apiRequest<CreateRoomResponse>("/api/rooms", {
       method: "POST",
-      json: {},
+      json: passcodeRequired ? { passcode } : {},
     });
 
     if (!result.ok) {
@@ -40,6 +76,8 @@ export default function HostStartPage() {
       return;
     }
 
+    // Tunnuslause muistetaan tässä selaimessa seuraavaa kertaa varten.
+    saveHostPasscode(passcode);
     saveHostSession({
       roomId: result.data.roomId,
       pin: result.data.pin,
@@ -48,7 +86,7 @@ export default function HostStartPage() {
     });
 
     router.push(`/host/${result.data.roomId}`);
-  }, [router]);
+  }, [passcode, passcodeRequired, router]);
 
   return (
     <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-6 px-4 py-10 pt-safe pb-safe">
@@ -83,6 +121,28 @@ export default function HostStartPage() {
             Sovellus arpoo kuusinumeroisen liittymiskoodin ja QR-koodin pelaajille.
           </p>
         </div>
+
+        {passcodeRequired ? (
+          <label className="flex flex-col gap-2">
+            <span className="flex items-center gap-2 text-sm font-bold tracking-wide uppercase">
+              <Lock className="size-4" />
+              Juontajan tunnuslause
+            </span>
+            <input
+              type="password"
+              value={passcode}
+              onChange={(event) => setEditedPasscode(event.target.value)}
+              autoComplete="current-password"
+              placeholder="Palvelimelle asetettu tunnuslause"
+              className="min-h-[52px] rounded-2xl border border-white/25 bg-white/10 px-4 text-lg font-bold outline-none placeholder:text-white/35 focus:border-fuchsia-300"
+              aria-label="Juontajan tunnuslause"
+            />
+            <span className="text-xs text-white/55">
+              Tämä palvelin on suojattu: uuden pelin luominen vaatii tunnuslauseen.
+              Se muistetaan tässä selaimessa.
+            </span>
+          </label>
+        ) : null}
 
         {error ? <Notice tone="error">{error}</Notice> : null}
 
