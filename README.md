@@ -1,0 +1,357 @@
+# Pikkujouluvisa
+
+Kahoot-tyylinen, selaimessa pelattava reaaliaikainen tietovisa pikkujouluihin.
+
+- **Juontaja** avaa `/host` omalla tietokoneellaan, luo pelihuoneen ja näyttää liittymiskoodin ja
+  QR-koodin projektorilta.
+- **Pelaajat** liittyvät omilla puhelimillaan osoitteessa `/join` – ilman sovelluksen asentamista
+  ja ilman käyttäjätunnuksia.
+- Vastaukset tarkistetaan ja pisteet lasketaan **aina palvelimella**. Oikea vastaus ei koskaan
+  lähetä pelaajan selaimeen ennen kuin kysymys on päättynyt.
+- Tulos- ja tulostaulunäkymät päivittyvät automaattisesti kaikilla laitteilla.
+
+---
+
+## 1. Vaatimukset
+
+| Vaatimus | Versio |
+| --- | --- |
+| Node.js | 20.19+ tai 22.12+ (testattu Node 22.23) |
+| npm | 10+ |
+| Supabase-projekti | ilmainen taso riittää |
+
+Teknologiat: Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 ·
+Supabase Postgres · Zod 4 · lucide-react · qrcode.react · Vitest 5.
+
+---
+
+## 2. Riippuvuuksien asennus
+
+```bash
+npm install
+```
+
+---
+
+## 3. Supabase-projektin luonti
+
+1. Luo projekti osoitteessa <https://supabase.com/dashboard>.
+2. Valitse projektista **Project Settings → API**.
+3. Kopioi talteen:
+   - **Project URL** (esim. `https://abcdefghijkl.supabase.co`)
+   - **Publishable key** (`sb_publishable_…`) – julkinen
+   - **Secret key** (`sb_secret_…`) – **salainen, vain palvelimelle**
+4. Valitse **Project Settings → Data API** ja varmista, että **Exposed schemas** sisältää
+   `public` (oletus).
+
+> Jos projektissa on käytössä vanhan malliset `anon` / `service_role` -JWT-avaimet, ne toimivat
+> sellaisenaan samoissa ympäristömuuttujissa.
+
+---
+
+## 4. SQL-migraatioiden suoritus
+
+Migraatiot ovat hakemistossa `supabase/migrations/`:
+
+| Tiedosto | Sisältö |
+| --- | --- |
+| `20260101000000_init.sql` | Taulut `rooms`, `players`, `answers`, indeksit, rajoitteet, RLS ja oikeuksien poisto |
+| `20260101000100_functions.sql` | Atomiset RPC-funktiot pelin ohjaukseen, vastausten tallennukseen ja tilannekuvaan |
+
+Tiedostonimen etuliite on migraation versio (aikaleima), jota Supabase CLI käyttää
+järjestyksen ja migraatiohistorian tunnistamiseen.
+
+**Aja tiedostot tässä järjestyksessä.** Sovellus ei oleta, että taulut ovat valmiina.
+
+### Vaihtoehto A – Supabasen GitHub-integraatio (automaattinen)
+
+1. Työnnä repositorio GitHubiin (`git push -u origin main`).
+2. Avaa Supabase-dashboardissa **Project Settings → Integrations → GitHub Integration**
+   ja valtuuta GitHub.
+3. Valitse repositorio ja aseta **Working directory** -kenttään `.`
+   (koska `supabase/`-kansio on repositorion juuressa).
+4. Ota käyttöön **Deploy to production** ja valitse tuotantohaaraksi `main`.
+5. Integraatio soveltaa `supabase/config.toml`-asetukset ja ajaa sen jälkeen kaikki
+   vielä soveltamattomat migraatiot.
+
+### Vaihtoehto B – SQL-editori (nopein käsin tehtynä)
+
+1. Avaa Supabase-dashboardissa **SQL Editor**.
+2. Liitä koko `supabase/migrations/20260101000000_init.sql` sisältö ja paina **Run**.
+3. Liitä koko `supabase/migrations/20260101000100_functions.sql` sisältö ja paina **Run**.
+
+### Vaihtoehto C – Supabase CLI
+
+```bash
+supabase link --project-ref <projektitunnus>
+supabase db push
+```
+
+Migraatiot voi ajaa uudelleen turvallisesti: taulut luodaan `if not exists` -ehdolla ja funktiot
+`create or replace` -lauseella.
+
+### Mitä migraatiot tekevät tietoturvan kannalta
+
+- RLS on päällä kaikissa tauluissa eikä **yhdellekään** roolille ole kirjoitettu politiikkaa:
+  `anon` ja `authenticated` eivät voi lukea eivätkä kirjoittaa mitään suoraan.
+- Tauluilta ja RPC-funktioilta on peruttu oikeudet (`revoke all … from anon, authenticated`) ja
+  EXECUTE on myönnetty vain `service_role`-roolille.
+- Tokenit tallennetaan vain SHA-256-tiivisteenä (`host_token_hash`, `players.token_hash`).
+- `answers`-taulussa on `UNIQUE (player_id, question_index)`, mikä estää kaksi vastausta samaan
+  kysymykseen myös kilpailevissa pyynnöissä.
+
+---
+
+## 5. Reaaliaikaisuus
+
+Tässä toteutuksessa reaaliaikaisuus hoidetaan **palvelinvälitteisellä tilakyselyllä**:
+selain hakee `GET /api/rooms/[roomId]/state` noin sekunnin välein (ja heti, kun välilehti palaa
+näkyviin tai verkkoyhteys palautuu). Kysely taukoaa, kun välilehti on piilossa.
+
+Miksi näin eikä suoralla Supabase Realtime -tilauksella:
+
+- Realtime-kanava ei ole käyttöoikeusjärjestelmä. Jotta selain voisi tilata taulukohtaisia
+  muutoksia, `anon`-roolille pitäisi avata lukuoikeus tauluihin – ja `rooms`-taulussa on
+  juontajan token-tiiviste ja `answers`-taulussa kaikki vastaukset.
+- Palvelinvälitteinen tila on ainoa tapa taata, että oikea vastaus ei vuoda selaimeen ennen
+  tulosvaihetta ja että jokainen vastaus näkyy vain omalle pelaajalleen.
+- Ratkaisu on myös riippumaton siitä, onko Realtime päällä projektissa.
+
+**Sinun ei siis tarvitse tehdä Supabase Realtime -asetuksia lainkaan.** Jos haluat myöhemmin
+push-pohjaisen päivityksen, se on turvallista toteuttaa vain palvelimen kautta (esim. server-sent
+events), ei suorana taulutilauksena selaimesta.
+
+---
+
+## 6. Ympäristömuuttujien asetus
+
+Kopioi `.env.example` ja täytä arvot:
+
+```bash
+cp .env.example .env.local
+```
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<projektitunnus>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_…
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_…
+# NEXT_PUBLIC_APP_URL=https://visa.example.com   # valinnainen
+```
+
+| Muuttuja | Pakollinen | Käyttötarkoitus |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | kyllä | Supabase-projektin URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | kyllä | Palvelinpuolen salainen avain. Käytetään **vain** route handlereissa. Ohittaa RLS:n. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ei | Julkinen avain. Selain ei keskustele Supabasen kanssa suoraan, joten tätä ei tarvita ajonaikaisesti. |
+| `NEXT_PUBLIC_APP_URL` | ei | Julkinen osoite, jota QR-koodi käyttää. Ilman tätä käytetään selaimen nykyistä osoitetta. |
+
+Tiedostot voi sijoittaa myös hakemistoon `config/.env` – `next.config.ts` lataa sen erikseen.
+Kaikki `.env*`-tiedostot ja `config/.env*` on lisätty `.gitignore`-tiedostoon.
+
+> **Turvallisuus:** `SUPABASE_SERVICE_ROLE_KEY` ei koskaan käytä `NEXT_PUBLIC_`-etuliitettä eikä
+> sitä koskaan tulosteta lokiin. Palvelinmoduulit on suojattu `server-only`-importilla, joten
+> käännös epäonnistuu, jos jokin selaimessa ajettava moduuli yrittää ladata vastausavaimen.
+
+---
+
+## 7. Kehityspalvelimen käynnistys
+
+```bash
+npm run dev
+```
+
+Sovellus avautuu osoitteessa <http://localhost:3000>.
+
+Puhelimilla testaaminen samassa verkossa:
+
+```bash
+npm run dev -- --hostname 0.0.0.0
+```
+
+Avaa tällöin juontajan sivu tietokoneen lähiverkko-osoitteella (esim.
+`http://192.168.1.20:3000/host`), jotta QR-koodiin muodostuu puhelimilla toimiva osoite.
+Vaihtoehtoisesti aseta `NEXT_PUBLIC_APP_URL` osoitteeseen, jolla puhelimet tavoittavat palvelimen.
+
+---
+
+## 8. Testien suoritus
+
+```bash
+npm run test        # yksikkö- ja integraatiotestit (Vitest)
+npm run test:watch  # testit vahtitilassa
+npm run lint        # ESLint
+npm run typecheck   # TypeScript strict -tarkistus
+npm run check       # lint + typecheck + testit
+```
+
+Testit eivät tarvitse Supabase-yhteyttä: tietokantaintegraatiot ajetaan PGlitellä
+(PostgreSQL WebAssemblyssä) samoilla migraatiotiedostoilla kuin tuotannossa.
+
+Testikattavuus:
+
+| Tiedosto | Mitä testataan |
+| --- | --- |
+| `src/lib/questions/questions.test.ts` | Kysymys-JSONin skeema, tunnisteiden uniikkius, neljä erillistä vaihtoehtoa, aikarajat, pisteet, oikean vastauksen puuttuminen julkisesta muodosta |
+| `src/lib/game/scoring.test.ts` | Pisteytys: väärä vastaus 0, oikea 500–1000, nopeusjärjestys, maksimiraja, myöhäinen vastaus 0 |
+| `src/lib/game/stateMachine.test.ts` | Tilakoneen sallitut ja kielletyt siirtymät |
+| `src/lib/game/leaderboard.test.ts` | Tulostaulun deterministinen järjestys ja jaetut sijoitukset |
+| `src/lib/game/answerValidation.test.ts` | Vastauksen hyväksymisen säännöt (aika, toinen vastaus, väärä indeksi) |
+| `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
+| `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa |
+| `src/test/gameFlow.test.ts` | Koko peli alusta loppuun: kaksi pelaajaa, pisteytys, myöhästyneet vastaukset, kaksinkertaisen pisteytyksen esto, tulostaulu, pelin päättäminen |
+
+---
+
+## 9. Tuotantojulkaisu
+
+```bash
+npm run build
+npm run start
+```
+
+Julkaisuun tarvitaan ympäristömuuttujat (Vercel, Docker, oma palvelin):
+
+1. `NEXT_PUBLIC_SUPABASE_URL`
+2. `SUPABASE_SERVICE_ROLE_KEY` – aseta **vain palvelinpuolen** ympäristömuuttujana
+3. `NEXT_PUBLIC_APP_URL` – julkinen osoite, jotta QR-koodi toimii (esim. `https://visa.example.com`)
+
+Julkaisun jälkeen:
+
+- Aja migraatiot tuotannon Supabase-projektiin (kohta 4).
+- Testaa peli vähintään kahdella eri selaimella ja puhelimella.
+
+---
+
+## 10. Näin peli pelataan
+
+### Juontaja
+
+1. Avaa `/host`.
+2. Paina **Luo uusi peli**. Sovellus arpoo kuusinumeroisen liittymiskoodin.
+3. Näytä projektorilta liittymiskoodi ja QR-koodi.
+4. Kun pelaajat ovat liittyneet, paina **Aloita peli**.
+5. Kysymys etenee: **Näytä oikea vastaus** → **Näytä tilanne** → **Seuraava kysymys**.
+   Kysymyksen päätyttyä siirtymä tulosvaiheeseen tapahtuu myös automaattisesti.
+6. Viimeisen kysymyksen jälkeen paina **Näytä lopullinen tulostaulu**.
+
+Näppäimistö: **Ctrl + Enter** (tai **Cmd + Enter**) suorittaa näkyvissä olevan ensisijaisen
+painikkeen. Tavallinen Enter tai välilyönti ei käynnistä peliä vahingossa.
+
+### Pelaaja
+
+1. Skannaa QR-koodi tai avaa `/join` ja syötä kuusinumeroinen koodi.
+2. Valitse nimimerkki (2–24 merkkiä, uniikki samassa pelissä).
+3. Vastaa kysymyksiin napauttamalla suurta värillistä painiketta.
+4. Näet oman pistemäärän ja sijoituksesi kysymyksen jälkeen.
+
+Pelaaja voi päivittää sivun kesken pelin – istunto säilyy samassa selaimessa.
+
+---
+
+## 11. Arkkitehtuuri
+
+```
+src/
+├─ app/
+│  ├─ page.tsx                     Aloitussivu
+│  ├─ host/page.tsx                Juontajan aloitus: luo tai jatka peliä
+│  ├─ host/[roomId]/page.tsx       Juontajan pelihuone
+│  ├─ join/page.tsx                Liittyminen (PIN + nimimerkki)
+│  ├─ play/[playerId]/page.tsx     Pelaajan pelinäkymä
+│  └─ api/rooms/…                  Palvelinpuolen route handlerit
+├─ components/                     Käyttöliittymäkomponentit
+├─ hooks/                          useRoomState, useCountdown, useNow, useStoredValue
+├─ lib/
+│  ├─ game/                        Tilakone, pisteytys, tulostaulu, vastauksen validointi
+│  ├─ questions/                   Kysymysten validointi (server-only, sisältää vastausavaimen)
+│  ├─ supabase/                    Palvelinpuolen Supabase-client ja virheiden muunnos
+│  ├─ api/                         Pyyntöskeemat, virhevastaukset, selainpuolen client
+│  ├─ rooms.ts                     Huoneen elinkaari ja pelin ohjaus (RPC-kutsut)
+│  ├─ roomState.ts                 Roolikohtaisen julkisen tilan rakentaminen
+│  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
+│  └─ rateLimit.ts                 Nopeusrajoitus
+├─ data/questions.json             Kysymykset (32 kpl)
+└─ test/                           PGlite-integraatiotestien apurit
+```
+
+### API-rajapinta
+
+| Metodi | Reitti | Rooli | Kuvaus |
+| --- | --- | --- | --- |
+| `POST` | `/api/rooms` | – | Luo huone, palauttaa PIN-koodin ja juontajan tokenin |
+| `POST` | `/api/rooms/join` | – | Liittää pelaajan PIN-koodilla, palauttaa pelaajan tokenin |
+| `GET` | `/api/rooms/[roomId]/state` | juontaja / pelaaja | Roolikohtainen julkinen tila (otsikot `x-host-token` / `x-player-token`) |
+| `POST` | `/api/rooms/[roomId]/start` | juontaja | `lobby → question` |
+| `POST` | `/api/rooms/[roomId]/reveal` | juontaja | `question → question_result` (vain määräajan jälkeen) |
+| `POST` | `/api/rooms/[roomId]/leaderboard` | juontaja | `question_result → leaderboard` |
+| `POST` | `/api/rooms/[roomId]/next` | juontaja | `leaderboard → question` tai `leaderboard → finished` |
+| `POST` | `/api/rooms/[roomId]/answer` | pelaaja | Vastauksen vastaanotto ja palvelinpuolen pisteytys |
+
+### Tilakone
+
+```
+lobby → question → question_result → leaderboard → question …
+                                                ↘ finished
+```
+
+Jokainen siirtymä tarkistetaan sekä TypeScriptissä (`src/lib/game/stateMachine.ts`) että
+tietokannan RPC-funktiossa, joka lukitsee huonerivin `SELECT … FOR UPDATE` -lauseella. Kaksi
+nopeaa komentoa eivät voi hypätä kysymyksen yli eivätkä palkita pelaajaa kahdesti.
+
+### Pisteytys
+
+```
+points = round(maxPoints × (1 − 0,5 × elapsedMs / timeLimitMs))
+```
+
+- Väärä vastaus: 0 pistettä.
+- Välitön oikea vastaus: lähes 1000 pistettä.
+- Aikarajan lopussa oikea vastaus: noin 500 pistettä.
+- Aikarajan jälkeen saapunut vastaus hylätään kokonaan.
+
+`elapsedMs` lasketaan palvelimen vastaanottohetkestä ja palvelimen asettamasta kysymyksen
+aloitusajasta. Selaimen kelloa tai ilmoittamaa vastausaikaa ei käytetä.
+
+### Tasapisteet
+
+1. kokonaispisteet
+2. oikeiden vastausten määrä
+3. liittymisjärjestys ja lopuksi pelaajan tunniste (täysin deterministinen)
+
+Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun sijoituksen.
+
+---
+
+## 12. Tietoturva
+
+| Vaatimus | Toteutus |
+| --- | --- |
+| Palvelinavain vain palvelimella | `SUPABASE_SERVICE_ROLE_KEY` ilman `NEXT_PUBLIC_`-etuliitettä; `server-only` estää käännösvaiheessa väärän importin |
+| RLS käytössä | Kaikissa tauluissa, ei yhtään politiikkaa `anon`/`authenticated`-roolille |
+| Ei suoria kirjoitusoikeuksia | `revoke all` tauluilta ja funktioilta; EXECUTE vain `service_role`-roolille |
+| Istunnot | 256-bittinen satunnaistoken, tietokannassa vain SHA-256-tiiviste |
+| Tokenit selaimessa | `localStorage` + pyyntöotsikot; ei koskaan URL-osoitteessa |
+| Juontajan komennot | Token tarkistetaan sekä route handlerissa että RPC-funktiossa |
+| Pelaajan vastaukset | Token + huonejäsenyys + kysymysindeksi + määräaika tarkistetaan palvelimella |
+| Oikea vastaus | Lähetetään pelaajalle vain tulosvaiheessa (`question_result`, `leaderboard`, `finished`) |
+| Syötteiden validointi | Zod kaikille pyynnöille; nimimerkki 2–24 merkkiä, sallitut merkit rajattu |
+| Nopeusrajoitus | Muistinvarainen liukuva ikkuna liittymiselle, huoneen luonnille ja vastauksille |
+| Virheilmoitukset | Suomenkielisiä, eivät sisällä SQL-virheitä eivätkä salaisuuksia |
+
+---
+
+## 13. Tunnetut rajoitukset
+
+- **Reaaliaikaisuus on kyselypohjaista** (n. 1 s väli), ei Supabase Realtime -tilausta.
+  Perustelu on kohdassa 5. Yhden illan pikkujouluvisaan tämä on riittävä ja tietoturvaltaan
+  selvästi turvallisempi vaihtoehto.
+- **Nopeusrajoitus on prosessikohtainen.** Moni-instanssisessa tuotannossa tilalle vaihdetaan
+  jaettu tallennus (esim. Redis).
+- **Playwright-testit puuttuvat.** Kriittinen logiikka on katettu yksikkö- ja
+  tietokantaintegraatiotesteillä; selaintason E2E-testit jäivät toteuttamatta.
+- **Huoneita ei siivota automaattisesti.** Vanhat huoneet ja pelaajat jäävät kantaan. Ne voi
+  poistaa tarvittaessa: `delete from public.rooms where created_at < now() - interval '7 days'`.
+- **Juontajan istunto on selainkohtainen.** Jos selaimen tiedot tyhjennetään kesken pelin,
+  peliä ei voi enää hallita – uusi peli pitää luoda.
+- **Pelaaja ei voi palata peliin uudella laitteella.** Istunto on sidottu selaimeen;
+  uudelleenliittyminen onnistuu vain ennen pelin alkua.

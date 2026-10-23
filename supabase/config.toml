@@ -1,0 +1,19 @@
+# ---------------------------------------------------------------------------
+# Supabase CLI -projektin asetukset.
+#
+# Tämä tiedosto tarvitaan, jotta Supabasen GitHub-integraatio tunnistaa
+# repositorion Supabase-projektiksi ja osaa ajaa migraatiot hakemistosta
+# supabase/migrations automaattisesti jokaisen pushin yhteydessä.
+#
+# HUOM: project_id EI ole etäprojektin viite (se ei ole .env.local-tiedoston
+# URL-osoitteessa näkyvä tunnus, esim. "abcdefghijklmnop"). Se on vain
+# paikallinen nimi, jolla CLI erottaa samalla koneella pyörivät projektit, ja
+# se on oletuksena projektikansion nimi. Etäprojekti valitaan komennolla
+# `supabase link --project-ref <viite>` (tallentuu supabase/.temp/-kansioon)
+# tai GitHub-integraation asetuksissa dashboardissa. Ainoa paikka, johon
+# oikea etäviite kuuluu tässä tiedostossa, on [remotes.<haara>]-lohko.
+#
+# Lisätietoja: https://supabase.com/docs/guides/deployment/branching/github-integration
+# ---------------------------------------------------------------------------
+
+project_id = "tietovisa"

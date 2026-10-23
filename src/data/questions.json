@@ -1,0 +1,300 @@
+[
+  {
+    "id": "q01",
+    "category": "Yleistieto",
+    "question": "Mikä on Suomen pääkaupunki?",
+    "answers": ["Turku", "Tampere", "Helsinki", "Oulu"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q02",
+    "category": "Yleistieto",
+    "question": "Mikä on maailman suurin valtameri?",
+    "answers": ["Atlantin valtameri", "Intian valtameri", "Tyyni valtameri", "Pohjoinen jäämeri"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q03",
+    "category": "Yleistieto",
+    "question": "Kuinka monta minuuttia on yhdessä vuorokaudessa?",
+    "answers": ["1 200", "1 440", "1 600", "2 400"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q04",
+    "category": "Yleistieto",
+    "question": "Mikä on kullan kemiallinen merkki?",
+    "answers": ["Ag", "Au", "Cu", "Fe"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q05",
+    "category": "Yleistieto",
+    "question": "Mikä on Euroopan pisin joki?",
+    "answers": ["Tonava", "Volga", "Rein", "Dnepr"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q06",
+    "category": "Yleistieto",
+    "question": "Kuinka monta luuta aikuisen ihmisen kehossa on suurin piirtein?",
+    "answers": ["206", "186", "226", "246"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q07",
+    "category": "Yleistieto",
+    "question": "Mikä on valon nopeus tyhjiössä pyöristettynä?",
+    "answers": ["noin 300 km/s", "noin 3 000 km/s", "noin 300 000 km/s", "noin 3 000 000 km/s"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q08",
+    "category": "Musiikki ja viihde",
+    "question": "Mikä yhtye levytti kappaleen ”Bohemian Rhapsody”?",
+    "answers": ["The Beatles", "Queen", "Led Zeppelin", "Pink Floyd"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q09",
+    "category": "Musiikki ja viihde",
+    "question": "Kuka voitti Eurovision laulukilpailun vuonna 2006 Suomen edustajana?",
+    "answers": ["Lordi", "Hanna Pakarinen", "Nightwish", "Apocalyptica"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q10",
+    "category": "Musiikki ja viihde",
+    "question": "Kuinka monta kieltä on tavallisessa akustisessa kitarassa?",
+    "answers": ["4", "5", "6", "7"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q11",
+    "category": "Musiikki ja viihde",
+    "question": "Mikä elokuva voitti parhaan elokuvan Oscar-palkinnon vuonna 2020?",
+    "answers": ["1917", "Joker", "Parasite", "Once Upon a Time in Hollywood"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 25,
+    "points": 1000
+  },
+  {
+    "id": "q12",
+    "category": "Musiikki ja viihde",
+    "question": "Kuka sävelsi joululaulun ”Jouluyö, juhlayö” (Silent Night)?",
+    "answers": [
+      "Franz Xaver Gruber",
+      "Wolfgang Amadeus Mozart",
+      "Jean Sibelius",
+      "Johann Sebastian Bach"
+    ],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 25,
+    "points": 1000
+  },
+  {
+    "id": "q13",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Mikä on Suomen pisin joki?",
+    "answers": ["Kemijoki", "Kymijoki", "Oulujoki", "Kokemäenjoki"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q14",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Mikä on Suomen suurin järvi?",
+    "answers": ["Saimaa", "Päijänne", "Inarijärvi", "Oulujärvi"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q15",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Mitä suomalainen sana ”kaamos” tarkoittaa?",
+    "answers": [
+      "Kesän hellejaksoa",
+      "Talvipäivänseisauksen aikaista pimeää jaksoa",
+      "Syksyn sadejaksoa",
+      "Kevään tulva-aikaa"
+    ],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q16",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Mikä on Suomen kansallislintu?",
+    "answers": ["Laulujoutsen", "Maakotka", "Metsäkurki", "Varpunen"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q17",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Minä päivänä vietetään Suomen itsenäisyyspäivää?",
+    "answers": ["6. joulukuuta", "1. toukokuuta", "24. kesäkuuta", "5. helmikuuta"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q18",
+    "category": "Suomi ja suomalaiset ilmiöt",
+    "question": "Mikä on väkiluvultaan Suomen suurin kaupunki?",
+    "answers": ["Espoo", "Helsinki", "Tampere", "Vantaa"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q19",
+    "category": "Ruoka ja juoma",
+    "question": "Mistä raaka-aineesta hummus valmistetaan pääosin?",
+    "answers": ["Herneestä", "Kikherneestä", "Linssistä", "Pavusta"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q20",
+    "category": "Ruoka ja juoma",
+    "question": "Mistä maasta pizza on alun perin kotoisin?",
+    "answers": ["Kreikasta", "Ranskasta", "Italiasta", "Espanjasta"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q21",
+    "category": "Ruoka ja juoma",
+    "question": "Mitä perinteistä täytettä on karjalanpiirakassa?",
+    "answers": ["Riisipuuroa", "Perunamuusia", "Porkkanasosetta", "Ohrapuuroa"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q22",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä suomalainen joululaatikko valmistetaan lantusta?",
+    "answers": ["Lanttulaatikko", "Porkkanalaatikko", "Perunalaatikko", "Maksalaatikko"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q23",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä mauste tunnetaan mustana, valkoisena ja vihreänä versiona?",
+    "answers": ["Kaneli", "Pippuri", "Basilika", "Kumina"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q24",
+    "category": "Pikkujoulut ja joulu",
+    "question": "Minä päivänä vietetään jouluaattoa?",
+    "answers": ["23. joulukuuta", "24. joulukuuta", "25. joulukuuta", "26. joulukuuta"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q25",
+    "category": "Pikkujoulut ja joulu",
+    "question": "Mikä laitetaan perinteisesti joulukuusen latvaan?",
+    "answers": ["Tähti", "Sydän", "Pallo", "Kello"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q26",
+    "category": "Pikkujoulut ja joulu",
+    "question": "Missä maassa sijaitsee Korvatunturi, jota pidetään joulupukin kotina?",
+    "answers": ["Norjassa", "Suomessa", "Ruotsissa", "Islannissa"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q27",
+    "category": "Pikkujoulut ja joulu",
+    "question": "Mikä on perinteinen suomalainen joulunajan maustettu juoma?",
+    "answers": ["Glögi", "Sima", "Kotikalja", "Omenamehu"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q28",
+    "category": "Pikkujoulut ja joulu",
+    "question": "Kuinka monta päivää on joulukuussa?",
+    "answers": ["28", "30", "31", "32"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q29",
+    "category": "Hauskat kysymykset",
+    "question": "Mikä on maailman suurin eläin?",
+    "answers": ["Sinivalas", "Afrikannorsu", "Kirahvi", "Valkohai"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q30",
+    "category": "Hauskat kysymykset",
+    "question": "Mikä näistä ei ole marja?",
+    "answers": ["Mustikka", "Puolukka", "Karviainen", "Kurkku"],
+    "correctAnswerIndex": 3,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q31",
+    "category": "Hauskat kysymykset",
+    "question": "Kuinka kauan valolla kestää matkata Auringosta Maahan?",
+    "answers": ["noin 8 sekuntia", "noin 8 minuuttia", "noin 8 tuntia", "noin 8 vuorokautta"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 20,
+    "points": 1000
+  },
+  {
+    "id": "q32",
+    "category": "Hauskat kysymykset",
+    "question": "Kuinka monta pelaajaa on jalkapallojoukkueessa kentällä samaan aikaan?",
+    "answers": ["9", "10", "11", "12"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  }
+]
