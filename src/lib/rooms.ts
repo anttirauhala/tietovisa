@@ -136,6 +136,24 @@ export async function revealQuestion(roomId: string, hostTokenHash: string): Pro
   requireOk(payload);
 }
 
+/**
+ * Päättää käynnissä olevan kysymyksen heti siirtämällä määräajan nykyhetkeen.
+ * Tavallinen tulosvaiheen siirtymä tehdään tämän jälkeen revealQuestion-
+ * funktiolla, joten tilakone pysyy ennallaan.
+ *
+ * Tarvitaan, jotta juontaja voi keskeyttää kysymyksen (puheenvuoro,
+ * aikataulu), sen sijaan että odottaisi aina täyden aikarajan.
+ */
+export async function endQuestionNow(roomId: string, hostTokenHash: string): Promise<void> {
+  const payload = await callRpc("end_question_now", {
+    p_room_id: roomId,
+    p_host_token_hash: hostTokenHash,
+    p_server_now: new Date().toISOString(),
+  });
+
+  requireOk(payload);
+}
+
 /** question_result → leaderboard. */
 export async function showLeaderboard(roomId: string, hostTokenHash: string): Promise<void> {
   const payload = await callRpc("show_leaderboard", {

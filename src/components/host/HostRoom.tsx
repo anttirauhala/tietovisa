@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Flag, ListOrdered, Sparkles, WifiOff } from "lucide-react";
+import { ArrowRight, Flag, ListOrdered, Sparkles, Square, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AnswerTile } from "@/components/AnswerTile";
@@ -16,7 +16,7 @@ import { ANSWER_SLOTS } from "@/lib/game/answerSlots";
 import type { HostState, PublicQuestion, RevealedQuestion } from "@/lib/game/types";
 import { isRevealedQuestion } from "@/lib/game/types";
 
-type HostAction = "start" | "reveal" | "leaderboard" | "next";
+type HostAction = "start" | "reveal" | "leaderboard" | "next" | "end-question" | "finish";
 
 /**
  * Juontajan pelinäkymä. Pelin etenemistä hallitaan palvelimella: jokainen
@@ -222,6 +222,8 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
               }
               actionDisabled={busy || !countdown.isFinished}
               onAction={() => void runCommand("reveal")}
+              onEndNow={() => void runCommand("end-question")}
+              endNowDisabled={busy || countdown.isFinished}
             />
           ) : null}
 
@@ -242,6 +244,7 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
               questionCount={room.questionCount}
               busy={busy}
               onNext={() => void runCommand("next")}
+              onFinishEarly={() => void runCommand("finish")}
             />
           ) : null}
 
@@ -262,6 +265,8 @@ function QuestionStage({
   actionLabel,
   actionDisabled,
   onAction,
+  onEndNow,
+  endNowDisabled,
 }: {
   question: { index: number; total: number; category: string; question: string; answers: string[] };
   seconds: number;
@@ -271,6 +276,8 @@ function QuestionStage({
   actionLabel: string;
   actionDisabled: boolean;
   onAction: () => void;
+  onEndNow: () => void;
+  endNowDisabled: boolean;
 }) {
   return (
     <div className="flex flex-col gap-6">
@@ -300,9 +307,20 @@ function QuestionStage({
           {answerCount} / {playerCount}{" "}
           <span className="text-base font-semibold text-white/70">on vastannut</span>
         </p>
-        <Button onClick={onAction} disabled={actionDisabled} className="px-8 py-5 text-xl">
-          {actionLabel}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            variant="secondary"
+            onClick={onEndNow}
+            disabled={endNowDisabled}
+            className="px-6 py-4 text-lg"
+          >
+            <Square className="size-5" />
+            Lopeta kysymys nyt
+          </Button>
+          <Button onClick={onAction} disabled={actionDisabled} className="px-8 py-5 text-xl">
+            {actionLabel}
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -399,12 +417,14 @@ function LeaderboardStage({
   questionCount,
   busy,
   onNext,
+  onFinishEarly,
 }: {
   players: HostState["players"];
   questionIndex: number;
   questionCount: number;
   busy: boolean;
   onNext: () => void;
+  onFinishEarly: () => void;
 }) {
   const isLastQuestion = questionIndex + 1 >= questionCount;
 
@@ -424,7 +444,7 @@ function LeaderboardStage({
         <LeaderboardList players={players} limit={10} size="lg" />
       </Card>
 
-      <div className="flex justify-center">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <Button onClick={onNext} disabled={busy} className="px-8 py-5 text-xl">
           {isLastQuestion ? (
             <>
@@ -438,7 +458,26 @@ function LeaderboardStage({
             </>
           )}
         </Button>
+
+        {isLastQuestion ? null : (
+          <Button
+            variant="secondary"
+            onClick={onFinishEarly}
+            disabled={busy}
+            className="px-6 py-4 text-lg"
+          >
+            <Flag className="size-5" />
+            Päätä peli tässä
+          </Button>
+        )}
       </div>
+
+      {isLastQuestion ? null : (
+        <p className="text-center text-sm text-white/60">
+          Voit päättää pelin kesken kysymyssarjan – lopullinen tulostaulu lasketaan tähän
+          mennessä kertyneistä pisteistä.
+        </p>
+      )}
     </div>
   );
 }

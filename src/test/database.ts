@@ -80,3 +80,38 @@ export async function callRpcStatus(
 export const TOKEN_HASH_A = "a".repeat(64);
 export const TOKEN_HASH_B = "b".repeat(64);
 export const TOKEN_HASH_C = "c".repeat(64);
+
+/**
+ * Tyypitetty apuri vastauksen lähettämiseen.
+ *
+ * submit_answer-funktiolla on kahdeksan parametria, joista kaksi peräkkäistä
+ * on helppo sekoittaa (is_correct ja points_awarded). Nimetty parametriolio
+ * estää tämän virheen.
+ */
+export type SubmitAnswerParams = {
+  roomId: string;
+  playerId: string;
+  questionIndex: number;
+  answerIndex: number;
+  isCorrect: boolean;
+  points: number;
+  responseTimeMs: number;
+  /** Palvelimen vastaanottohetki ISO-merkkijonona. */
+  serverNow: string;
+};
+
+export async function submitAnswer(
+  db: PGlite,
+  params: SubmitAnswerParams,
+): Promise<RpcStatus> {
+  return callRpcStatus(db, "submit_answer", [
+    params.roomId,
+    params.playerId,
+    params.questionIndex,
+    params.answerIndex,
+    params.isCorrect,
+    params.points,
+    params.responseTimeMs,
+    params.serverNow,
+  ]);
+}

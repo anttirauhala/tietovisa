@@ -222,10 +222,12 @@ Testikattavuus:
 | `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
 | `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa |
 | `src/test/gameFlow.test.ts` | Koko peli alusta loppuun: kaksi pelaajaa, pisteytys, myöhästyneet vastaukset, kaksinkertaisen pisteytyksen esto, tulostaulu, pelin päättäminen |
+| `src/test/interrupt.test.ts` | Kysymyksen keskeyttäminen kesken määräajan, myöhäisten vastausten hylkäys, juontajan token, idempotenssi, pelin päättäminen kesken sarjan |
 | `e2e/host-lobby.spec.ts` | Juontaja luo pelin: PIN-koodi, QR-koodin renderöityminen ja liittymislinkin toimivuus |
 | `e2e/join-flow.spec.ts` | Kaksi pelaajaa liittyy (QR-linkki ja käsin syötetty koodi), juontaja näkee heidät, virhetilanteet |
 | `e2e/question-flow.spec.ts` | Kysymys, vastaus, toisen vastauksen esto, oikean vastauksen paljastuminen vasta tulosvaiheessa, tulostaulu, seuraava kysymys |
 | `e2e/game-end.spec.ts` | Viimeisen kysymyksen jälkeen peli päättyy, voittaja ja konfetti, pelaajan lopullinen sijoitus |
+| `e2e/interrupt.spec.ts` | Kysymyksen keskeyttäminen kesken määräajan (mitataan, että tulosvaihe saavutetaan ennen aikarajaa) ja pelin päättäminen etuajassa |
 
 ---
 
@@ -259,6 +261,8 @@ Julkaisun jälkeen:
 4. Kun pelaajat ovat liittyneet, paina **Aloita peli**.
 5. Kysymys etenee: **Näytä oikea vastaus** → **Näytä tilanne** → **Seuraava kysymys**.
    Kysymyksen päätyttyä siirtymä tulosvaiheeseen tapahtuu myös automaattisesti.
+   Kesken kysymyksen voit painaa **Lopeta kysymys nyt**, ja tulostaululla **Päätä peli tässä**,
+   jos haluat lopettaa aiemmin (ks. *Keskeyttäminen ja tauko*).
 6. Viimeisen kysymyksen jälkeen paina **Näytä lopullinen tulostaulu**.
 
 Näppäimistö: **Ctrl + Enter** (tai **Cmd + Enter**) suorittaa näkyvissä olevan ensisijaisen
@@ -272,6 +276,22 @@ painikkeen. Tavallinen Enter tai välilyönti ei käynnistä peliä vahingossa.
 4. Näet oman pistemäärän ja sijoituksesi kysymyksen jälkeen.
 
 Pelaaja voi päivittää sivun kesken pelin – istunto säilyy samassa selaimessa.
+
+### Keskeyttäminen ja tauko
+
+Peliä voi hallita kesken kaiken:
+
+| Tilanne | Mitä tapahtuu |
+| --- | --- |
+| Tauko kysymysten välissä | Odotushuone, tulosnäkymä ja tulostaulu odottavat juontajaa rajattomasti. Pelkkä "ei klikkaa" riittää tauoksi. |
+| Kysymys kesken, tarvitaan tauko | Paina **Lopeta kysymys nyt**. Kysymys päättyy heti, jo annetut vastaukset pisteytetään ja tämän jälkeen saapuvat vastaukset hylätään myöhäisinä. |
+| Peli halutaan lopettaa aiemmin | Tulostaululla paina **Päätä peli tässä**. Lopullinen tulostaulu lasketaan tähän mennessä kertyneistä pisteistä. |
+| Koko selain suljetaan | Pelin tila on tietokannassa ja juontajan istunto selaimessa. Avaa `/host` ja paina **Avaa pelihuone** – peli jatkuu täsmälleen siitä mihin jäi. Myös pelaajien puhelimet palautuvat automaattisesti. |
+| Kysymys jäi kesken selaimen sulkeutuessa | Kysymyksen määräaika kuluu loppuun palvelimella; vastaamatta jääneet saavat 0 pistettä. Juontajan palatessa tulosvaihe siirtyy automaattisesti eteenpäin. |
+
+Määräaikaa ei voi pidentää eikä peliä voi "jäädyttää" kesken kysymyksen – kysymys joko
+päättyy itsestään tai juontaja päättää sen. Tämä on tarkoituksellista: palvelin on ajan
+auktoriteetti, joten kukaan ei voi saada lisäaikaa.
 
 ---
 
@@ -313,6 +333,8 @@ src/
 | `POST` | `/api/rooms/[roomId]/reveal` | juontaja | `question → question_result` (vain määräajan jälkeen) |
 | `POST` | `/api/rooms/[roomId]/leaderboard` | juontaja | `question_result → leaderboard` |
 | `POST` | `/api/rooms/[roomId]/next` | juontaja | `leaderboard → question` tai `leaderboard → finished` |
+| `POST` | `/api/rooms/[roomId]/end-question` | juontaja | Keskeyttää käynnissä olevan kysymyksen heti |
+| `POST` | `/api/rooms/[roomId]/finish` | juontaja | `leaderboard → finished` kesken kysymyssarjan |
 | `POST` | `/api/rooms/[roomId]/answer` | pelaaja | Vastauksen vastaanotto ja palvelinpuolen pisteytys |
 
 ### Tilakone

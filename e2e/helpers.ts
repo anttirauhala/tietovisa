@@ -23,6 +23,8 @@ export type Question = {
   question: string;
   answers: string[];
   correctAnswerIndex: number;
+  timeLimitSeconds: number;
+  points: number;
 };
 
 export function readQuestions(): Question[] {
