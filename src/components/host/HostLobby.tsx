@@ -46,7 +46,10 @@ export function HostLobby({
             <Users className="size-6" />
             Pelaajat
           </h2>
-          <span className="tv-chip px-4 py-1 text-lg font-bold tabular-nums">
+          <span
+            className="tv-chip px-4 py-1 text-lg font-bold tabular-nums"
+            data-testid="player-count"
+          >
             {playerCount}
           </span>
         </div>

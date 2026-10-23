@@ -192,6 +192,23 @@ npm run check       # lint + typecheck + testit
 Testit eivät tarvitse Supabase-yhteyttä: tietokantaintegraatiot ajetaan PGlitellä
 (PostgreSQL WebAssemblyssä) samoilla migraatiotiedostoilla kuin tuotannossa.
 
+### Selaintason testit (Playwright)
+
+```bash
+npx playwright install chromium   # kerran: lataa selaimen
+npm run build                     # testit ajetaan tuotantokäännöksestä
+npm run test:e2e                  # kriittiset käyttäjäpolut
+npm run test:e2e:ui               # sama, Playwrightin UI-tilassa
+```
+
+Selaintason testit tarvitsevat **oikean Supabase-projektin** (samat ympäristömuuttujat kuin
+sovellus lukee `.env.local`-tiedostosta), koska ne käyttävät oikeaa tietokantaa, oikeita
+istuntotokeneita ja palvelinpuolen pisteytystä. Playwright käynnistää `next start` -palvelimen
+automaattisesti porttiin 3210 (`E2E_PORT`-ympäristömuuttujalla voi vaihtaa portin).
+
+Testit luovat omat pelihuoneensa ja poistavat ne lopuksi. Jokainen pelaaja saa oman
+selainkontekstin, joten ne vastaavat oikeita puhelimia (erilliset `localStorage`-tallennukset).
+
 Testikattavuus:
 
 | Tiedosto | Mitä testataan |
@@ -201,9 +218,14 @@ Testikattavuus:
 | `src/lib/game/stateMachine.test.ts` | Tilakoneen sallitut ja kielletyt siirtymät |
 | `src/lib/game/leaderboard.test.ts` | Tulostaulun deterministinen järjestys ja jaetut sijoitukset |
 | `src/lib/game/answerValidation.test.ts` | Vastauksen hyväksymisen säännöt (aika, toinen vastaus, väärä indeksi) |
+| `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättynyt peli |
 | `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
 | `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa |
 | `src/test/gameFlow.test.ts` | Koko peli alusta loppuun: kaksi pelaajaa, pisteytys, myöhästyneet vastaukset, kaksinkertaisen pisteytyksen esto, tulostaulu, pelin päättäminen |
+| `e2e/host-lobby.spec.ts` | Juontaja luo pelin: PIN-koodi, QR-koodin renderöityminen ja liittymislinkin toimivuus |
+| `e2e/join-flow.spec.ts` | Kaksi pelaajaa liittyy (QR-linkki ja käsin syötetty koodi), juontaja näkee heidät, virhetilanteet |
+| `e2e/question-flow.spec.ts` | Kysymys, vastaus, toisen vastauksen esto, oikean vastauksen paljastuminen vasta tulosvaiheessa, tulostaulu, seuraava kysymys |
+| `e2e/game-end.spec.ts` | Viimeisen kysymyksen jälkeen peli päättyy, voittaja ja konfetti, pelaajan lopullinen sijoitus |
 
 ---
 
@@ -276,7 +298,8 @@ src/
 │  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
 │  └─ rateLimit.ts                 Nopeusrajoitus
 ├─ data/questions.json             Kysymykset (32 kpl)
-└─ test/                           PGlite-integraatiotestien apurit
+├─ test/                           PGlite-integraatiotestien apurit
+└─ (juuri) e2e/                    Playwright-selaintestit ja niiden apurit
 ```
 
 ### API-rajapinta
@@ -352,8 +375,11 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
   selvästi turvallisempi vaihtoehto.
 - **Nopeusrajoitus on prosessikohtainen.** Moni-instanssisessa tuotannossa tilalle vaihdetaan
   jaettu tallennus (esim. Redis).
-- **Playwright-testit puuttuvat.** Kriittinen logiikka on katettu yksikkö- ja
-  tietokantaintegraatiotesteillä; selaintason E2E-testit jäivät toteuttamatta.
+- **Selaintason testit vaativat oikean Supabase-projektin** eivätkä ne siksi kuulu `npm run
+  check` -komentoon. Ne ajetaan erikseen komennolla `npm run test:e2e` (ks. kohta 8).
+  Testit on ajettu Chromiumilla; Safari ja Firefox eivät ole testatussa joukossa.
+- **Testattu vain Chromiumilla ja yhdellä koneella.** Oikeilla puhelimilla (iOS Safari,
+  Android Chrome) testaaminen jäi tekemättä, koska käytettävissä ei ollut laitteita.
 - **Huoneita ei siivota automaattisesti.** Vanhat huoneet ja pelaajat jäävät kantaan. Ne voi
   poistaa tarvittaessa: `delete from public.rooms where created_at < now() - interval '7 days'`.
 - **Juontajan istunto on selainkohtainen.** Jos selaimen tiedot tyhjennetään kesken pelin,

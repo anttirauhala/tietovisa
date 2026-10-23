@@ -296,7 +296,7 @@ function QuestionStage({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-2xl font-bold tabular-nums">
+        <p className="text-2xl font-bold tabular-nums" data-testid="answer-count">
           {answerCount} / {playerCount}{" "}
           <span className="text-base font-semibold text-white/70">on vastannut</span>
         </p>
