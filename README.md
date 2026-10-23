@@ -57,6 +57,7 @@ Migraatiot ovat hakemistossa `supabase/migrations/`:
 | --- | --- |
 | `20260101000000_init.sql` | Taulut `rooms`, `players`, `answers`, indeksit, rajoitteet, RLS ja oikeuksien poisto |
 | `20260101000100_functions.sql` | Atomiset RPC-funktiot pelin ohjaukseen, vastausten tallennukseen ja tilannekuvaan |
+| `20260102000000_player_token_index.sql` | Pelaajan token-haun yhdistelmäindeksi `(room_id, token_hash)` ja päällekkäisen indeksin poisto |
 
 Tiedostonimen etuliite on migraation versio (aikaleima), jota Supabase CLI käyttää
 järjestyksen ja migraatiohistorian tunnistamiseen.

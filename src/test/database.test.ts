@@ -50,11 +50,29 @@ afterAll(async () => {
 });
 
 describe("SQL-migraatiot", () => {
-  it("sisältää odotetut migraatiotiedostot", () => {
-    expect(listMigrations()).toEqual([
-      "20260101000000_init.sql",
-      "20260101000100_functions.sql",
-    ]);
+  it("sisältää odotetut migraatiotiedostot aikaleimajärjestyksessä", () => {
+    const files = listMigrations();
+
+    expect(files).toContain("20260101000000_init.sql");
+    expect(files).toContain("20260101000100_functions.sql");
+    expect(files).toContain("20260102000000_player_token_index.sql");
+
+    // Järjestys on versionumeron (aikaleiman) mukainen.
+    expect([...files].sort()).toEqual(files);
+  });
+
+  it("sisältää pelaajan token-haun yhdistelmäindeksin", async () => {
+    const indexes = await db.query<{ indexname: string }>(
+      `select indexname from pg_indexes where schemaname = 'public' and tablename = 'players'`,
+    );
+
+    const names = indexes.rows.map((row) => row.indexname);
+
+    expect(names).toContain("players_room_token_idx");
+    expect(names).toContain("players_room_score_idx");
+    expect(names).toContain("players_room_nickname_key");
+    // Päällekkäinen yhden sarakkeen indeksi poistettiin uusimmassa migraatiossa.
+    expect(names).not.toContain("players_room_idx");
   });
 
   it("luo taulut ja ottaa RLS:n käyttöön", async () => {
