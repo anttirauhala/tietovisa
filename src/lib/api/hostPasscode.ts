@@ -36,11 +36,21 @@ export function verifyHostPasscode(
     return { ok: false, reason: "required" };
   }
 
-  return hashesEqual(hashToken(expected), hashToken(provided)) ? { ok: true } : { ok: false, reason: "invalid" };
+  /*
+   * Palvelimen arvo on jo trimmattu skeemassa (env.ts), joten myös syöte
+   * trimmataan. Muuten esimerkiksi puhelimen automaattitäytön tai
+   * liittämisen mukana tullut välilyönti hylkäisi oikean tunnuslauseen.
+   * Vain reunan välilyönnit sivuutetaan – välissä olevat merkitsevät.
+   */
+  const normalized = provided.trim();
+
+  return hashesEqual(hashToken(expected), hashToken(normalized))
+    ? { ok: true }
+    : { ok: false, reason: "invalid" };
 }
 
 export function passcodeErrorMessage(reason: "required" | "invalid"): string {
   return reason === "required"
     ? "Juontajan tunnuslause puuttuu."
-    : "Väärä juontajan tunnuslause.";
+    : "Väärä juontajan tunnuslause. Tarkista palvelimen HOST_PASSCODE – myös kirjainkoko ja lainausmerkit merkitsevät.";
 }

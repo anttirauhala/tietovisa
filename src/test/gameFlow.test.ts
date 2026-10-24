@@ -268,7 +268,8 @@ describe("koko peli alusta loppuun", () => {
   it("pelaa kaikki kysymykset läpi ja päättyy viimeisen tulostaulun kautta", async () => {
     const { roomId, playerOne, playerTwo } = await createRoomWithPlayers("300001");
     const totalQuestions = getQuestionCount();
-    expect(totalQuestions).toBeGreaterThanOrEqual(20);
+    // Kysymysten määrä on sisältöratkaisu, joten testi ei lukitse tiettyä lukua.
+    expect(totalQuestions).toBeGreaterThanOrEqual(5);
 
     const clock = Date.now();
 

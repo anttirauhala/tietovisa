@@ -33,9 +33,19 @@ describe("juontajan tunnuslause", () => {
   it("hylkää väärän tunnuslauseen", () => {
     expect(verifyHostPasscode("väärä", "salainen")).toEqual({ ok: false, reason: "invalid" });
     expect(verifyHostPasscode("salaine", "salainen")).toEqual({ ok: false, reason: "invalid" });
-    expect(verifyHostPasscode("salainen ", "salainen")).toEqual({ ok: false, reason: "invalid" });
     // Kirjainkoko on merkitsevä.
     expect(verifyHostPasscode("SALAINEN", "salainen")).toEqual({ ok: false, reason: "invalid" });
+    // Välissä oleva merkki on merkitsevä.
+    expect(verifyHostPasscode("salai nen", "salainen")).toEqual({ ok: false, reason: "invalid" });
+  });
+
+  it("sietää reunan välilyönnit syötteessä", () => {
+    // Puhelimen automaattitäyttö ja kopiointi liittävät usein välilyönnin.
+    // Palvelimen arvo trimmataan skeemassa, joten syöte trimmataan samoin.
+    expect(verifyHostPasscode("salainen ", "salainen")).toEqual({ ok: true });
+    expect(verifyHostPasscode(" salainen", "salainen")).toEqual({ ok: true });
+    expect(verifyHostPasscode("  salainen  ", "salainen")).toEqual({ ok: true });
+    expect(verifyHostPasscode("\tsalainen\n", "salainen")).toEqual({ ok: true });
   });
 
   it("ei paljasta tunnuslausetta virheilmoituksessa", () => {

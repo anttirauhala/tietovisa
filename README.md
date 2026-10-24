@@ -353,6 +353,30 @@ riittävät ja ovat yksinkertaisempia.
 > hallitsemia muuttujia ei voi muokata käsin, joten päällekkäisyys tekee vaikeaksi tietää,
 > kumpi arvo on voimassa.
 
+### Tunnuslause ei kelpaa (vianselvitys)
+
+Jos uuden pelin luonti epäonnistuu tunnuslauseesta huolimatta, tarkista järjestyksessä:
+
+1. **Virheilmoitus kertoo syyn.** "Liian monta pyyntöä" = nopeusrajoitus, odota minuutti.
+   "Väärä juontajan tunnuslause" = arvot eivät täsmää.
+2. **Testaa palvelinta suoraan**, jolloin selain ja automaattitäyttö rajautuvat pois:
+
+   ```bash
+   curl -s -X POST https://oma-osoite.vercel.app/api/rooms \
+     -H 'content-type: application/json' \
+     -d '{"passcode":"se-minka-luulit-olevan"}' ; echo
+   ```
+
+   `201` = tunnuslause on oikein ja ongelma on selaimessa (esim. automaattitäyttö).
+   `401` = palvelimen arvo on eri kuin luulit.
+3. **Tarkista arvo Vercelistä:** *Settings → Environment Variables → `HOST_PASSCODE`*.
+   Ympäristömuuttujan muutos vaatii uuden julkaisun.
+4. **Vältä lainausmerkkejä.** Jos arvon liittää `.env`-riviltä, mukaan tulee helposti
+   lainausmerkit, jotka ovat osa arvoa. Pelkät reunan välilyönnit sivuutetaan automaattisesti.
+5. **Kirjainkoko merkitsee.** `Pikkujoulu` ja `pikkujoulu` ovat eri tunnuslause.
+
+Juontajan sivulla on **Näytä**-painike, jolla näet mitä kentässä todella on.
+
 ### Julkaisun jälkeen
 
 - Aja migraatiot tuotannon Supabase-projektiin (kohta 4). GitHub-integraatio hoitaa tämän
@@ -427,7 +451,7 @@ src/
 │  ├─ roomState.ts                 Roolikohtaisen julkisen tilan rakentaminen
 │  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
 │  └─ rateLimit.ts                 Nopeusrajoitus
-├─ data/questions.json             Kysymykset (32 kpl)
+├─ data/questions.json             Kysymykset (8 kpl)
 ├─ test/                           PGlite-integraatiotestien apurit
 └─ (juuri) e2e/                    Playwright-selaintestit ja niiden apurit
 ```
@@ -495,7 +519,7 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 | Pelaajan vastaukset | Token + huonejäsenyys + kysymysindeksi + määräaika tarkistetaan palvelimella |
 | Oikea vastaus | Lähetetään pelaajalle vain tulosvaiheessa (`question_result`, `leaderboard`, `finished`) |
 | Syötteiden validointi | Zod kaikille pyynnöille; nimimerkki 2–24 merkkiä, sallitut merkit rajattu |
-| Nopeusrajoitus | Muistinvarainen liukuva ikkuna: liittyminen, huoneen luonti (5/min ja 20/h per IP) ja vastaukset |
+| Nopeusrajoitus | Muistinvarainen liukuva ikkuna per IP: huoneen luonti 20/min ja 60/h, liittyminen 60/min, vastaukset ja juontajan toiminnot 120/min, tilakysely 6000/min. Liittymisraja on väljä, koska koko seurue liittyy yleensä samasta WiFi-verkosta eli samasta IP-osoitteesta. |
 | Avoin huoneen luonti | Voidaan suojata `HOST_PASSCODE`-tunnuslauseella. Vertailu vakioaikaisesti, tunnuslausetta ei koskaan palauteta vastauksissa. |
 | Vanhentunut data | Huoneet poistetaan automaattisesti 24 tunnin jälkeen uuden huoneen luonnin yhteydessä (kaskadi poistaa pelaajat ja vastaukset) |
 | Virheilmoitukset | Suomenkielisiä, eivät sisällä SQL-virheitä eivätkä salaisuuksia |

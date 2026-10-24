@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Lock, Plus, Ticket } from "lucide-react";
+import { Eye, EyeOff, Lock, Plus, Ticket } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, Card, Notice } from "@/components/ui";
@@ -34,6 +34,7 @@ export default function HostStartPage() {
 
   const [passcodeRequired, setPasscodeRequired] = useState(false);
   const [editedPasscode, setEditedPasscode] = useState<string | null>(null);
+  const [showPasscode, setShowPasscode] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -128,18 +129,31 @@ export default function HostStartPage() {
               <Lock className="size-4" />
               Juontajan tunnuslause
             </span>
-            <input
-              type="password"
-              value={passcode}
-              onChange={(event) => setEditedPasscode(event.target.value)}
-              autoComplete="current-password"
-              placeholder="Palvelimelle asetettu tunnuslause"
-              className="min-h-[52px] rounded-2xl border border-white/25 bg-white/10 px-4 text-lg font-bold outline-none placeholder:text-white/35 focus:border-fuchsia-300"
-              aria-label="Juontajan tunnuslause"
-            />
+            <div className="flex items-stretch gap-2">
+              <input
+                type={showPasscode ? "text" : "password"}
+                value={passcode}
+                onChange={(event) => setEditedPasscode(event.target.value)}
+                autoComplete="off"
+                placeholder="Palvelimelle asetettu tunnuslause"
+                className="min-h-[52px] flex-1 rounded-2xl border border-white/25 bg-white/10 px-4 text-lg font-bold outline-none placeholder:text-white/35 focus:border-fuchsia-300"
+                aria-label="Juontajan tunnuslause"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setShowPasscode((visible) => !visible)}
+                aria-pressed={showPasscode}
+                className="shrink-0"
+              >
+                {showPasscode ? <EyeOff className="size-5" /> : <Eye className="size-5" />}
+                {showPasscode ? "Piilota" : "Näytä"}
+              </Button>
+            </div>
             <span className="text-xs text-white/55">
               Tämä palvelin on suojattu: uuden pelin luominen vaatii tunnuslauseen.
-              Se muistetaan tässä selaimessa.
+              Sen pitää täsmätä palvelimen <strong>HOST_PASSCODE</strong>-arvoon
+              (kirjainkoko merkitsee). Se muistetaan tässä selaimessa.
             </span>
           </label>
         ) : null}

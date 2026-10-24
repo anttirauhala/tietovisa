@@ -85,17 +85,20 @@ describe("kysymysten JSON-skeema", () => {
 });
 
 describe("kysymystiedosto src/data/questions.json", () => {
-  it("sisältää vähintään 20 kysymystä", () => {
-    expect(getQuestionCount()).toBeGreaterThanOrEqual(20);
+  it("sisältää pelattavan määrän kysymyksiä", () => {
+    // Kysymysten tarkka määrä on sisältöratkaisu (kysymykset ovat JSONissa).
+    // Testi varmistaa vain, ettei tiedosto ole tyhjentynyt vahingossa.
+    expect(getQuestionCount()).toBeGreaterThanOrEqual(5);
   });
 
   it("läpäisee skeemavalidonnin", () => {
     expect(questionsSchema.safeParse(QUESTIONS).success).toBe(true);
   });
 
-  it("sisältää useita kategorioita", () => {
+  it("sisältää vähintään kaksi kategoriaa ja jokaisella kysymyksellä on kategoria", () => {
     const categories = new Set(QUESTIONS.map((question) => question.category));
-    expect(categories.size).toBeGreaterThanOrEqual(5);
+    expect(categories.size).toBeGreaterThanOrEqual(2);
+    expect(QUESTIONS.every((question) => question.category.trim().length > 0)).toBe(true);
   });
 
   it("hakee kysymyksen indeksillä ja tunnistaa rajat", () => {

@@ -31,8 +31,13 @@ export async function POST(request: Request) {
   try {
     // Tiukempi raja kuin ennen: huoneen luonti on raskain yksittäinen toiminto
     // ja ainoa, jonka kuka tahansa voi tehdä ilman istuntoa.
-    enforceRateLimit(request, "rooms:create", 5, 60_000);
-    enforceRateLimit(request, "rooms:create:hour", 20, 3_600_000);
+    //
+    // Raja on kuitenkin väljä inhimilliselle yritykselle: juontaja saattaa
+    // kokeilla useita kertoja (esim. väärä tunnuslause tai epäonnistunut
+    // yritys), eikä yksikään näistä saa lukita koko iltaa. 60 tunnissa rajaa
+    // automaattisen väärinkäytön, ja vanhat huoneet siivotaan 24 tunnissa.
+    enforceRateLimit(request, "rooms:create", 20, 60_000);
+    enforceRateLimit(request, "rooms:create:hour", 60, 3_600_000);
 
     const body = parseWith(createRoomRequestSchema, await readJsonBody(request));
 
