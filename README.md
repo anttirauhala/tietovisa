@@ -16,18 +16,29 @@ Kahoot-tyylinen, selaimessa pelattava reaaliaikainen tietovisa pikkujouluihin.
 
 | Vaatimus | Versio |
 | --- | --- |
-| Node.js | 20.19+ tai 22.12+ (testattu Node 22.23) |
+| Node.js | 24.22.1+ (tai 22.x-haarassa vähintään 22.23.4) |
 | npm | 10+ |
 | Supabase-projekti | ilmainen taso riittää |
 
 Teknologiat: Next.js 16 (App Router) · React 19 · TypeScript strict · Tailwind CSS 4 ·
 Supabase Postgres · Zod 4 · lucide-react · qrcode.react · Vitest 5.
 
+> **Node-version turvavaatimus.** Node.js:n mukana tulevassa Brotli-dekooderissa on
+> haavoittuvuus **CVE-2026-111497** (Node2Shell, HIGH): rikkinäinen pakattu syöte voi kirjoittaa
+> dekooderin puskurin ohi ja johtaa koodin suoritukseen. Korjatut versiot ovat **22.23.4**,
+> **24.22.1** ja **26.12.1**; esimerkiksi 22.23.2, 22.23.3 ja 24.0–24.21 ovat alttiita.
+> Versio on lukittu tiedostoon `.nvmrc` ja `package.json`:in `engines`-kenttään.
+> Tarkista ajonaikainen versio komennolla
+> `node -p "require('zlib').constants.BROTLI_DECODER_ERROR_FORMAT_BLOCK_SWITCH"`:
+> numero tarkoittaa korjattua ja `undefined` haavoittuvaa versiota. Huom:
+> `process.versions.brotli` **ei** kerro tätä, koska korjaus ei nosta brotlin versionumeroa.
+
 ---
 
 ## 2. Riippuvuuksien asennus
 
 ```bash
+nvm use        # lukee .nvmrc:n (Node 24.22.1); muilla versiohallinnoilla vastaava komento
 npm install
 ```
 
@@ -325,7 +336,10 @@ Huomioitavaa:
   haluat pakottaa tietyn verkkotunnuksen.
 - `NEXT_PUBLIC_`-muuttujan muuttaminen vaatii uuden julkaisun. Pelkän palvelinpuolen muuttujan
   (`SUPABASE_SERVICE_ROLE_KEY`, `HOST_PASSCODE`) muutos riittää käynnistykseen.
-- Vercel käyttää oletuksena Node.js 24.x, mikä kelpaa: Next.js 16 vaatii vähintään 20.9.
+- Vercel käyttää oletuksena Node.js 24.x, mikä kelpaa: Next.js 16 vaatii vähintään 20.9 ja
+  Node2Shell-korjaus (CVE-2026-111497) on mukana 24.22.1:stä alkaen. `engines`-kenttä pitää
+  Vercelin 24.x-linjalla. Vercel tarjoaa vain major-versiot, joten tarkkaa patch-versiota ei voi
+  valita: jos vaihdat projektin asetuksista 22.x:ään, varmista että se on vähintään 22.23.4.
 - Supabasen puolella ei tarvita lisäasetuksia. Sovellus ei käytä Supabase Authia eikä selain
   keskustele Supabasen kanssa, joten verkkotunnusten sallintaa ei tarvita.
 
@@ -556,6 +570,7 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 | Avoin huoneen luonti | Voidaan suojata `HOST_PASSCODE`-tunnuslauseella. Vertailu vakioaikaisesti, tunnuslausetta ei koskaan palauteta vastauksissa. |
 | Vanhentunut data | Huoneet poistetaan automaattisesti 24 tunnin jälkeen uuden huoneen luonnin yhteydessä (kaskadi poistaa pelaajat ja vastaukset) |
 | Virheilmoitukset | Suomenkielisiä, eivät sisällä SQL-virheitä eivätkä salaisuuksia |
+| Ajonaikainen Node-versio | Lukittu (`.nvmrc` + `engines`); Node2Shell-korjaus (CVE-2026-111497) mukana – ks. kohta 1 |
 
 ---
 
