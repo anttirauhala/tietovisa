@@ -1,4 +1,5 @@
-import { ApiError, jsonErrorResponse, jsonResponse } from "@/lib/api/errors";
+import { ApiError, jsonErrorResponse } from "@/lib/api/errors";
+import { jsonStateResponse } from "@/lib/api/conditional";
 import { readHostToken, readPlayerToken, enforceRateLimit } from "@/lib/api/server";
 import { buildHostState, buildPlayerState } from "@/lib/roomState";
 
@@ -15,6 +16,11 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
  * Oikeaa vastausta ei palauteta pelaajalle ennen tulosvaihetta.
  * Selain käyttää tätä myös reaaliaikaisen päivityksen lähteenä (ks. README:
  * miksi palvelinvälitteinen tila on turvallisempi kuin suora Realtime-tilaus).
+ *
+ * Vastaus on ehdollinen (ETag + If-None-Match): kun tila on ennallaan,
+ * palvelin vastaa 304 Not Modified ilman runkoa. Selain säilyttää silloin
+ * aiemman tilansa, joten sekunnin välein toistuva kysely ei siirrä
+ * pelaajalistoja eikä kysymyssisältöä turhaan.
  */
 export async function GET(request: Request, context: RouteContext) {
   try {
@@ -29,12 +35,12 @@ export async function GET(request: Request, context: RouteContext) {
 
     const hostToken = readHostToken(request);
     if (hostToken) {
-      return jsonResponse(await buildHostState(roomId, hostToken));
+      return jsonStateResponse(request, await buildHostState(roomId, hostToken));
     }
 
     const playerToken = readPlayerToken(request);
     if (playerToken) {
-      return jsonResponse(await buildPlayerState(roomId, playerToken));
+      return jsonStateResponse(request, await buildPlayerState(roomId, playerToken));
     }
 
     throw new ApiError(401, "invalid_token", "Istunto puuttuu. Liity peliin uudelleen.");

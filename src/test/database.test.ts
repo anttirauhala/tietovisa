@@ -56,6 +56,7 @@ describe("SQL-migraatiot", () => {
     expect(files).toContain("20260101000000_init.sql");
     expect(files).toContain("20260101000100_functions.sql");
     expect(files).toContain("20260102000000_player_token_index.sql");
+    expect(files).toContain("20260105000000_room_snapshot_aggregates.sql");
 
     // Järjestys on versionumeron (aikaleiman) mukainen.
     expect([...files].sort()).toEqual(files);
@@ -255,5 +256,129 @@ describe("pelin tilakone tietokannassa", () => {
   it("estää siirtymän question → finished", async () => {
     const result = await callRpcStatus(db, "finish_room", [roomId, TOKEN_HASH_A]);
     expect(result.status).toBe("invalid_state");
+  });
+});
+
+describe("tilannekuvan aggregaatit", () => {
+  /**
+   * Tilannekuva palauttaa vastausrivien sijaan aggregaatit (answerCount,
+   * distribution) ja kysyvän pelaajan oman vastauksen (myAnswer). Tämä pitää
+   * tilakyselyn rungon pienenä: 30 pelaajan huoneessa vastausrivejä ei enää
+   * siirretä tietokannasta palvelimelle jokaista sekunnin välein tehtävää
+   * kyselyä kohti.
+   */
+  it("palauttaa vastausmäärän ja jakauman ilman vastausrivejä", async () => {
+    const pin = "400001";
+    const roomId = await callRpc<string>(db, "create_room", [pin, TOKEN_HASH_A]);
+    const first = await callRpcStatus(db, "join_room", [pin, "Aino", TOKEN_HASH_B]);
+    const second = await callRpcStatus(db, "join_room", [pin, "Eino", TOKEN_HASH_C]);
+
+    const startedAtMs = Date.now();
+    await callRpcStatus(db, "start_question", [
+      roomId,
+      TOKEN_HASH_A,
+      0,
+      new Date(startedAtMs).toISOString(),
+      new Date(startedAtMs + QUESTION_LIMIT_MS).toISOString(),
+    ]);
+
+    await callRpcStatus(db, "submit_answer", [
+      roomId,
+      String(first.playerId),
+      0,
+      2,
+      true,
+      700,
+      500,
+      new Date(startedAtMs + 500).toISOString(),
+    ]);
+    await callRpcStatus(db, "submit_answer", [
+      roomId,
+      String(second.playerId),
+      0,
+      2,
+      true,
+      900,
+      300,
+      new Date(startedAtMs + 400).toISOString(),
+    ]);
+
+    const snapshot = await callRpc<{
+      answerCount: number;
+      distribution: number[];
+      myAnswer: {
+        answerIndex: number;
+        isCorrect: boolean;
+        pointsAwarded: number;
+        responseTimeMs: number;
+      } | null;
+    }>(db, "room_snapshot", [roomId, String(first.playerId)]);
+
+    expect(snapshot.answerCount).toBe(2);
+    expect(snapshot.distribution).toEqual([0, 0, 2, 0]);
+    expect(snapshot.myAnswer).toEqual({
+      answerIndex: 2,
+      isCorrect: true,
+      pointsAwarded: 700,
+      responseTimeMs: 500,
+    });
+
+    // Vastausrivit eivät enää kulje tilannekuvan mukana.
+    expect(snapshot).not.toHaveProperty("answers");
+  });
+
+  it("palauttaa jakauman neljänä alkiona, vaikka yksikään ei ole vastannut", async () => {
+    const pin = "400002";
+    const roomId = await callRpc<string>(db, "create_room", [pin, TOKEN_HASH_A]);
+    await callRpcStatus(db, "join_room", [pin, "Aino", TOKEN_HASH_B]);
+
+    const snapshot = await callRpc<{ answerCount: number; distribution: number[] }>(
+      db,
+      "room_snapshot",
+      [roomId],
+    );
+
+    expect(snapshot.answerCount).toBe(0);
+    expect(snapshot.distribution).toEqual([0, 0, 0, 0]);
+  });
+
+  it("ei palauta omaa vastausta, kun pelaajatunnistetta ei anneta", async () => {
+    const pin = "400003";
+    const roomId = await callRpc<string>(db, "create_room", [pin, TOKEN_HASH_A]);
+    const player = await callRpcStatus(db, "join_room", [pin, "Aino", TOKEN_HASH_B]);
+
+    const startedAtMs = Date.now();
+    await callRpcStatus(db, "start_question", [
+      roomId,
+      TOKEN_HASH_A,
+      0,
+      new Date(startedAtMs).toISOString(),
+      new Date(startedAtMs + QUESTION_LIMIT_MS).toISOString(),
+    ]);
+    await callRpcStatus(db, "submit_answer", [
+      roomId,
+      String(player.playerId),
+      0,
+      1,
+      false,
+      0,
+      200,
+      new Date(startedAtMs + 200).toISOString(),
+    ]);
+
+    const playerView = await callRpc<{ myAnswer: unknown }>(db, "room_snapshot", [
+      roomId,
+      String(player.playerId),
+    ]);
+    const hostView = await callRpc<{ myAnswer: unknown; answerCount: number }>(
+      db,
+      "room_snapshot",
+      [roomId],
+    );
+
+    expect(playerView.myAnswer).not.toBeNull();
+    // Juontajan näkymä ei sisällä kenenkään henkilökohtaista vastausta.
+    expect(hostView.myAnswer).toBeNull();
+    expect(hostView.answerCount).toBe(1);
   });
 });

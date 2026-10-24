@@ -35,13 +35,12 @@ export async function POST(request: Request, context: RouteContext) {
     const body = parseWith(answerRequestSchema, await readJsonBody(request));
 
     const session = await requirePlayerSession(roomId, playerToken);
-    const snapshot = await loadRoomSnapshot(roomId);
+    // playerId välitetään, jotta tietokanta palauttaa pelaajan oman vastauksen
+    // sen sijaan että kaikki kuluvan kysymyksen vastausrivit siirrettäisiin.
+    const snapshot = await loadRoomSnapshot(roomId, session.playerId);
 
     const activeQuestionIndex = snapshot.room.currentQuestionIndex;
-    const alreadyAnswered = snapshot.answers.some(
-      (answer) =>
-        answer.playerId === session.playerId && answer.questionIndex === activeQuestionIndex,
-    );
+    const alreadyAnswered = snapshot.myAnswer !== null;
 
     const validation = validateAnswerSubmission({
       roomStatus: snapshot.room.status,

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { apiRequest } from "@/lib/api/client";
+import { apiConditionalRequest } from "@/lib/api/client";
 import { nextPollDelayMs } from "@/lib/polling";
 import { computeClockOffset } from "@/lib/time";
 
@@ -16,6 +16,11 @@ import { computeClockOffset } from "@/lib/time";
  *
  * Kysely hidastuu, kun välilehti on piilossa, ja palaa normaaliin vauhtiin
  * heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu.
+ *
+ * Kysely on ehdollinen (ETag + If-None-Match): jos tila on ennallaan,
+ * palvelin vastaa 304 Not Modified ilman runkoa. Silloin uutta tilaa ei
+ * aseteta, joten sekunnin välein toistuva kysely ei siirrä eikä renderöi
+ * turhaan pelaajalistoja eikä kysymyssisältöä.
  */
 
 type StateShape = {
@@ -56,6 +61,8 @@ export function useRoomState<T extends StateShape>({
 
   const statusRef = useRef<string | null>(null);
   const disposedRef = useRef(false);
+  /** Viimeksi saatu ETag: lähetetään seuraavassa kyselyssä If-None-Match-otsikkona. */
+  const etagRef = useRef<string | null>(null);
 
   const fetchOnce = useCallback(
     async (signal?: AbortSignal) => {
@@ -64,9 +71,10 @@ export function useRoomState<T extends StateShape>({
       }
 
       const receivedAt = Date.now();
-      const result = await apiRequest<T>(`/api/rooms/${roomId}/state`, {
+      const result = await apiConditionalRequest<T>(`/api/rooms/${roomId}/state`, {
         hostToken: role === "host" ? token : null,
         playerToken: role === "player" ? token : null,
+        etag: etagRef.current,
         signal,
       });
 
@@ -75,11 +83,23 @@ export function useRoomState<T extends StateShape>({
       }
 
       if (result.ok) {
-        statusRef.current = result.data.room.status;
-        setState(result.data);
-        setError(null);
-        setErrorCode(null);
-        setClockOffsetMs(computeClockOffset(result.data.serverNow, receivedAt));
+        if (result.notModified) {
+          /*
+           * 304 Not Modified: tila on ennallaan. Aiempaa tilaa ei aseteta
+           * uudelleen, joten React ei renderöi turhaan. Palvelin ei lähettänyt
+           * serverNow-kelloa, joten kelloarviota ei päivitetä – seuraava
+           * oikea tilanmuutos palauttaa koko tilan ja korjaa sen.
+           */
+          setError(null);
+          setErrorCode(null);
+        } else {
+          etagRef.current = result.etag;
+          statusRef.current = result.data.room.status;
+          setState(result.data);
+          setError(null);
+          setErrorCode(null);
+          setClockOffsetMs(computeClockOffset(result.data.serverNow, receivedAt));
+        }
         setLastUpdatedAt(Date.now());
       } else if (result.code !== "aborted") {
         setError(result.message);
@@ -93,6 +113,8 @@ export function useRoomState<T extends StateShape>({
 
   useEffect(() => {
     disposedRef.current = false;
+    // Uusi istunto tai huone: edellisen istunnon ETag ei ole enää voimassa.
+    etagRef.current = null;
 
     if (!roomId || !token) {
       return;

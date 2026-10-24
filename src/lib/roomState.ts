@@ -41,20 +41,23 @@ type SnapshotRoom = {
   playerCount: number;
 };
 
-type SnapshotAnswer = {
-  playerId: string;
-  questionIndex: number;
+/** Pelaajan oma vastaus kuluvaan kysymykseen. Ei sisällä oikeaa vastausta. */
+type SnapshotMyAnswer = {
   answerIndex: number;
   isCorrect: boolean;
   pointsAwarded: number;
   responseTimeMs: number;
-  submittedAt: string;
 };
 
 type Snapshot = {
   room: SnapshotRoom;
   players: PublicPlayer[];
-  answers: SnapshotAnswer[];
+  /** Kuinka moni on vastannut kuluvaan kysymykseen. */
+  answerCount: number;
+  /** Vastausten määrä vaihtoehdoittain (indeksi 0–3). */
+  distribution: number[];
+  /** Kysyvän pelaajan oma vastaus, tai null kun pelaajaa ei kysytty. */
+  myAnswer: SnapshotMyAnswer | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -63,8 +66,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Tietokantavirheet muunnetaan selkokielisiksi API-virheiksi (ks. lib/supabase/errors). */
 
-export async function loadRoomSnapshot(roomId: string): Promise<Snapshot> {
-  const { data, error } = await getSupabaseAdmin().rpc("room_snapshot", { p_room_id: roomId });
+/**
+ * Hakee huoneen julkisen tilannekuvan.
+ *
+ * `playerId` annetaan vain pelaajanäkymässä. Silloin tietokanta palauttaa myös
+ * kysyjän oman vastauksen (myAnswer) sen sijaan, että kaikki kuluvan
+ * kysymyksen vastausrivit siirrettäisiin palvelimelle. Vastausmäärä ja
+ * jakauma tulevat aggregaatteina aina.
+ */
+export async function loadRoomSnapshot(
+  roomId: string,
+  playerId: string | null = null,
+): Promise<Snapshot> {
+  const { data, error } = await getSupabaseAdmin().rpc("room_snapshot", {
+    p_room_id: roomId,
+    p_player_id: playerId,
+  });
 
   if (error) {
     throw mapDatabaseError(error);
@@ -90,17 +107,15 @@ export async function loadRoomSnapshot(roomId: string): Promise<Snapshot> {
       }))
     : [];
 
-  const answers: SnapshotAnswer[] = Array.isArray(data.answers)
-    ? data.answers.filter(isRecord).map((answer) => ({
-        playerId: String(answer.playerId),
-        questionIndex: Number(answer.questionIndex ?? 0),
-        answerIndex: Number(answer.answerIndex ?? 0),
-        isCorrect: Boolean(answer.isCorrect),
-        pointsAwarded: Number(answer.pointsAwarded ?? 0),
-        responseTimeMs: Number(answer.responseTimeMs ?? 0),
-        submittedAt: String(answer.submittedAt ?? ""),
-      }))
-    : [];
+  const myAnswerSource = isRecord(data.myAnswer) ? data.myAnswer : null;
+  const myAnswer: SnapshotMyAnswer | null = myAnswerSource
+    ? {
+        answerIndex: Number(myAnswerSource.answerIndex ?? 0),
+        isCorrect: Boolean(myAnswerSource.isCorrect),
+        pointsAwarded: Number(myAnswerSource.pointsAwarded ?? 0),
+        responseTimeMs: Number(myAnswerSource.responseTimeMs ?? 0),
+      }
+    : null;
 
   return {
     room: {
@@ -113,7 +128,11 @@ export async function loadRoomSnapshot(roomId: string): Promise<Snapshot> {
       playerCount: Number(room.playerCount ?? players.length),
     },
     players,
-    answers,
+    answerCount: Number(data.answerCount ?? 0),
+    distribution: Array.isArray(data.distribution)
+      ? data.distribution.map((count) => Number(count ?? 0))
+      : [],
+    myAnswer,
   };
 }
 
@@ -130,17 +149,20 @@ function toRoomSummary(room: SnapshotRoom): RoomSummary {
   };
 }
 
-function buildDistribution(snapshot: Snapshot): number[] {
+/**
+ * Vastausjakauma kuluvalle kysymykselle. Tietokanta palauttaa aggregaatin,
+ * joka tasataan aina ANSWER_SLOT_COUNT alkion mittaiseksi.
+ */
+function toDistribution(snapshot: Snapshot): number[] {
   const distribution = new Array<number>(ANSWER_SLOT_COUNT).fill(0);
-  for (const answer of snapshot.answers) {
-    if (
-      answer.questionIndex === snapshot.room.currentQuestionIndex &&
-      answer.answerIndex >= 0 &&
-      answer.answerIndex < ANSWER_SLOT_COUNT
-    ) {
-      distribution[answer.answerIndex] += 1;
+
+  snapshot.distribution.forEach((count, index) => {
+    if (index < 0 || index >= ANSWER_SLOT_COUNT || !Number.isFinite(count)) {
+      return;
     }
-  }
+    distribution[index] = Math.max(0, Math.round(count));
+  });
+
   return distribution;
 }
 
@@ -156,7 +178,7 @@ function buildQuestion(snapshot: Snapshot): PublicQuestion | RevealedQuestion | 
   }
 
   if (revealsAnswer(status)) {
-    return toRevealedQuestion(currentQuestionIndex, buildDistribution(snapshot));
+    return toRevealedQuestion(currentQuestionIndex, toDistribution(snapshot));
   }
 
   return toPublicQuestion(currentQuestionIndex);
@@ -228,9 +250,7 @@ export async function buildHostState(roomId: string, hostToken: string | null): 
     serverNow: new Date().toISOString(),
     room: toRoomSummary(snapshot.room),
     players: rankPlayers(snapshot.players),
-    answerCount: snapshot.answers.filter(
-      (answer) => answer.questionIndex === snapshot.room.currentQuestionIndex,
-    ).length,
+    answerCount: snapshot.answerCount,
     question: buildQuestion(snapshot),
   };
 }
@@ -240,7 +260,7 @@ export async function buildPlayerState(
   playerToken: string | null,
 ): Promise<PlayerState> {
   const session = await requirePlayerSession(roomId, playerToken);
-  const snapshot = await loadRoomSnapshot(roomId);
+  const snapshot = await loadRoomSnapshot(roomId, session.playerId);
   const ranked = rankPlayers(snapshot.players);
   const self = ranked.find((player) => player.id === session.playerId);
 
@@ -248,20 +268,24 @@ export async function buildPlayerState(
     throw new ApiError(401, "invalid_token", "Pelaajaa ei löytynyt tästä huoneesta.");
   }
 
-  const ownAnswer =
-    snapshot.answers.find(
-      (answer) =>
-        answer.playerId === session.playerId &&
-        answer.questionIndex === snapshot.room.currentQuestionIndex,
-    ) ?? null;
-
+  const ownAnswer = snapshot.myAnswer;
   const showOwnResult = revealsAnswer(snapshot.room.status);
+
+  /*
+   * Koko pelaajalista lähetetään vain vaiheissa, joissa käyttöliittymä sitä
+   * näyttää (tulostaulu ja lopputilanne). Kysymyksen aikana riittää oma
+   * sijoitus, joka lasketaan palvelimella – näin tilakyselyn runkoon ei tule
+   * pelaajamäärän verran kenttiä jokaista sekunnin välein tehtävää kyselyä
+   * kohti.
+   */
+  const includePlayers =
+    snapshot.room.status === "leaderboard" || snapshot.room.status === "finished";
 
   return {
     role: "player",
     serverNow: new Date().toISOString(),
     room: toRoomSummary(snapshot.room),
-    players: ranked,
+    players: includePlayers ? ranked : [],
     me: {
       id: self.id,
       nickname: self.nickname,

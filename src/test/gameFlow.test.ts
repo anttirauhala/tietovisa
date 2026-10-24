@@ -199,6 +199,66 @@ describe("vastauksen vastaanotto ja pisteytys", () => {
     expect((await readPlayer(roomId, playerOne)).score).toBe(0);
   });
 
+  it("näyttää pelaajan oman vastauksen tilannekuvassa ja laskee jakauman aggregaattina", async () => {
+    const { roomId, playerOne, playerTwo } = await createRoomWithPlayers("200009");
+    const startedAtMs = Date.now();
+    const question = getQuestionAt(5);
+    const wrongIndex = (question.correctAnswerIndex + 1) % 4;
+    const points = scoreAnswer(0, question.correctAnswerIndex, 1000);
+
+    await startQuestion(roomId, 0, startedAtMs);
+
+    await answer(
+      roomId,
+      playerOne,
+      0,
+      question.correctAnswerIndex,
+      points,
+      true,
+      startedAtMs + 1000,
+    );
+    await answer(roomId, playerTwo, 0, wrongIndex, 0, false, startedAtMs + 1200);
+
+    const playerView = await callRpc<{
+      answerCount: number;
+      distribution: number[];
+      myAnswer: { answerIndex: number; isCorrect: boolean; pointsAwarded: number } | null;
+    }>(db, "room_snapshot", [roomId, playerOne]);
+
+    expect(playerView.answerCount).toBe(2);
+    expect(playerView.myAnswer).toEqual({
+      answerIndex: question.correctAnswerIndex,
+      isCorrect: true,
+      pointsAwarded: points,
+      responseTimeMs: 500,
+    });
+
+    const distribution = [...playerView.distribution];
+    expect(distribution[question.correctAnswerIndex]).toBe(1);
+    expect(distribution[wrongIndex]).toBe(1);
+    expect(distribution.reduce((sum, count) => sum + count, 0)).toBe(2);
+
+    // Toinen pelaaja näkee oman vastauksensa, ei toisen.
+    const otherView = await callRpc<{
+      myAnswer: { answerIndex: number; isCorrect: boolean } | null;
+    }>(db, "room_snapshot", [roomId, playerTwo]);
+
+    expect(otherView.myAnswer).toEqual({
+      answerIndex: wrongIndex,
+      isCorrect: false,
+      pointsAwarded: 0,
+      responseTimeMs: 500,
+    });
+
+    // Pelaaja, joka ei kuulu huoneeseen, ei saa mitään omaa vastausta.
+    const strangerView = await callRpc<{ myAnswer: unknown }>(db, "room_snapshot", [
+      roomId,
+      "00000000-0000-0000-0000-000000000000",
+    ]);
+
+    expect(strangerView.myAnswer).toBeNull();
+  });
+
   it("hylkää vastauksen, kun kysymys ei ole auki", async () => {
     const { roomId, playerOne } = await createRoomWithPlayers("200005");
     const startedAtMs = Date.now();

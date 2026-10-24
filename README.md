@@ -58,11 +58,19 @@ Migraatiot ovat hakemistossa `supabase/migrations/`:
 | `20260101000000_init.sql` | Taulut `rooms`, `players`, `answers`, indeksit, rajoitteet, RLS ja oikeuksien poisto |
 | `20260101000100_functions.sql` | Atomiset RPC-funktiot pelin ohjaukseen, vastausten tallennukseen ja tilannekuvaan |
 | `20260102000000_player_token_index.sql` | Pelaajan token-haun yhdistelmäindeksi `(room_id, token_hash)` ja päällekkäisen indeksin poisto |
+| `20260103000000_end_question_now.sql` | `end_question_now`: kysymyksen päättäminen kesken (juontajan tauko) |
+| `20260104000000_room_lifecycle.sql` | Vanhojen huoneiden siivous (`purge_old_rooms`) ja `created_at`-indeksi |
+| `20260105000000_room_snapshot_aggregates.sql` | Tilannekuvan kevennys: vastausrivien sijaan `answerCount`, `distribution` ja kysyjän oma `myAnswer` |
 
 Tiedostonimen etuliite on migraation versio (aikaleima), jota Supabase CLI käyttää
 järjestyksen ja migraatiohistorian tunnistamiseen.
 
 **Aja tiedostot tässä järjestyksessä.** Sovellus ei oleta, että taulut ovat valmiina.
+
+> **Tärkeää päivityksen yhteydessä:** uusin migraatio vaihtaa `room_snapshot`-funktion
+> allekirjoituksen (`p_room_id`, `p_player_id`). Jos päivität sovelluksen mutta et aja
+> migraatiota, tilakysely palauttaa virheen `not_configured` ja pelinäkymä jää tyhjäksi.
+> Aja migraatio ennen kuin otat uuden version käyttöön.
 
 ### Vaihtoehto A – Supabasen GitHub-integraatio (automaattinen)
 
@@ -112,6 +120,27 @@ selain hakee `GET /api/rooms/[roomId]/state` noin sekunnin välein (juontaja 900
 Kyselyä **ei koskaan pysäytetä**: jos välilehti on piilossa, väliä pidennetään 4 sekuntiin ja
 pelin päätyttyä 5 sekuntiin. Tämä on tärkeää juontajalle – muuten uusien pelaajien liittyminen
 näkyisi vasta, kun hän palaa selainvälilehdelle (esim. vaihdettuaan musiikkisovellukseen).
+
+### Kysely on kevyt ja ehdollinen
+
+Kaksi asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
+
+1. **Tilannekuva sisältää aggregaatit, ei vastausrivejä.** Tietokannan `room_snapshot` palauttaa
+   kuluvan kysymyksen osalta vain vastausten määrän (`answerCount`), jakauman (`distribution`,
+   aina neljä alkiota) ja kysyvän pelaajan oman vastauksen (`myAnswer`). Aiemmin jokainen
+   vastausrivi siirtyi tietokannasta palvelimelle jokaista kyselyä kohti.
+2. **Vastaus on ehdollinen (ETag + If-None-Match).** Palvelin laskee tilan sisällöstä heikon
+   ETagin ja vastaa `304 Not Modified` ilman runkoa, kun tila on ennallaan. Selain säilyttää
+   silloin aiemman tilansa eikä renderöi uudelleen. Tunniste lasketaan sisällöstä eikä
+   `serverNow`-kellosta, joten sama tila tuottaa saman tunnisteen riippumatta roolista – ja
+   eri sisältö tuottaa aina eri tunnisteen, joten roolit eivät voi saada toistensa vastausta.
+
+Pelaajalle ei myöskään lähetetä koko pelaajalistaa kysymyksen aikana: lista tulee mukaan vasta
+tulostaulussa ja lopputilanteessa, joissa sitä näytetään. Oma sijoitus lasketaan palvelimella.
+
+Kun palvelin vastaa 304:llä, selain ei päivitä kelloarviotaan, koska tyhjässä vastauksessa ei ole
+`serverNow`-arvoa. Seuraava tilanmuutos palauttaa koko tilan ja korjaa kelloarvion, joten ajastin
+pysyy tarkkana kysymyksen alkaessa ja jokaisen vaihteen yhteydessä.
 
 Miksi näin eikä suoralla Supabase Realtime -tilauksella:
 
@@ -243,7 +272,10 @@ Testikattavuus:
 | `src/lib/game/answerValidation.test.ts` | Vastauksen hyväksymisen säännöt (aika, toinen vastaus, väärä indeksi) |
 | `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättynyt peli |
 | `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
-| `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa |
+| `src/lib/etag.test.ts` | ETag-tunnisteen vakaus, `serverNow`-kellon sivuuttaminen, If-None-Match-vertailu (useat arvot, jokerimerkki, heikko vertailu) |
+| `src/lib/api/conditional.test.ts` | Ehdollinen tilavastaus: 200 + ETag, 304 ilman runkoa, täysi vastaus vanhentuneella tunnisteella |
+| `src/lib/api/client.test.ts` | Selainpuolen client: If-None-Match-otsikko, 304:n tulkinta ja virhevastausten muunnos |
+| `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa, tilannekuvan aggregaatit (`answerCount`, `distribution`, `myAnswer`) |
 | `src/test/gameFlow.test.ts` | Koko peli alusta loppuun: kaksi pelaajaa, pisteytys, myöhästyneet vastaukset, kaksinkertaisen pisteytyksen esto, tulostaulu, pelin päättäminen |
 | `src/test/interrupt.test.ts` | Kysymyksen keskeyttäminen kesken määräajan, myöhäisten vastausten hylkäys, juontajan token, idempotenssi, pelin päättäminen kesken sarjan |
 | `e2e/host-lobby.spec.ts` | Juontaja luo pelin: PIN-koodi, QR-koodin renderöityminen ja liittymislinkin toimivuus |
@@ -446,9 +478,10 @@ src/
 │  ├─ game/                        Tilakone, pisteytys, tulostaulu, vastauksen validointi
 │  ├─ questions/                   Kysymysten validointi (server-only, sisältää vastausavaimen)
 │  ├─ supabase/                    Palvelinpuolen Supabase-client ja virheiden muunnos
-│  ├─ api/                         Pyyntöskeemat, virhevastaukset, selainpuolen client
+│  ├─ api/                         Pyyntöskeemat, virhevastaukset, ehdollinen tilavastaus, selainpuolen client
 │  ├─ rooms.ts                     Huoneen elinkaari ja pelin ohjaus (RPC-kutsut)
 │  ├─ roomState.ts                 Roolikohtaisen julkisen tilan rakentaminen
+│  ├─ etag.ts                      Pelitilan ETag-tunniste (ehdollinen tilakysely)
 │  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
 │  └─ rateLimit.ts                 Nopeusrajoitus
 ├─ data/questions.json             Kysymykset (8 kpl)
@@ -462,7 +495,7 @@ src/
 | --- | --- | --- | --- |
 | `POST` | `/api/rooms` | – | Luo huone, palauttaa PIN-koodin ja juontajan tokenin |
 | `POST` | `/api/rooms/join` | – | Liittää pelaajan PIN-koodilla, palauttaa pelaajan tokenin |
-| `GET` | `/api/rooms/[roomId]/state` | juontaja / pelaaja | Roolikohtainen julkinen tila (otsikot `x-host-token` / `x-player-token`) |
+| `GET` | `/api/rooms/[roomId]/state` | juontaja / pelaaja | Roolikohtainen julkinen tila (otsikot `x-host-token` / `x-player-token`). Ehdollinen: ETag + `If-None-Match` → `304` ilman runkoa |
 | `POST` | `/api/rooms/[roomId]/start` | juontaja | `lobby → question` |
 | `POST` | `/api/rooms/[roomId]/reveal` | juontaja | `question → question_result` (vain määräajan jälkeen) |
 | `POST` | `/api/rooms/[roomId]/leaderboard` | juontaja | `question_result → leaderboard` |
@@ -530,7 +563,9 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 
 - **Reaaliaikaisuus on kyselypohjaista** (n. 1 s väli), ei Supabase Realtime -tilausta.
   Perustelu on kohdassa 5. Yhden illan pikkujouluvisaan tämä on riittävä ja tietoturvaltaan
-  selvästi turvallisempi vaihtoehto.
+  selvästi turvallisempi vaihtoehto. Rungon siirto on minimoitu (aggregaatit ja 304-vastaukset),
+  mutta **tietokantakysely tehdään silti jokaista kyselyä kohti** – palvelin ei voi tietää tilan
+  olevan ennallaan ilman että se lukee tilan.
 - **Nopeusrajoitus on prosessikohtainen.** Moni-instanssisessa tuotannossa tilalle vaihdetaan
   jaettu tallennus (esim. Redis).
 - **Selaintason testit vaativat oikean Supabase-projektin** eivätkä ne siksi kuulu `npm run
