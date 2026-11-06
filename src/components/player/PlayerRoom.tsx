@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Trophy, WifiOff } from "lucide-react";
+import { Loader2, Trophy, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { AnswerTile } from "@/components/AnswerTile";
@@ -211,10 +211,7 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
           {hasAnswered ? (
             <div className="flex flex-1 flex-col justify-center gap-4">
               <Notice tone="success">
-                <span className="flex items-center gap-2 font-bold">
-                  <CheckCircle2 className="size-5" />
-                  Vastaus tallennettu!
-                </span>
+                <span className="font-bold">Vastaus tallennettu!</span>
                 <span className="mt-1 block text-white/85">
                   Valintasi: {selectedIndex !== null ? question.answers[selectedIndex] : "—"}
                 </span>
