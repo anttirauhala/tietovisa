@@ -29,14 +29,36 @@ body {
 
 body {
   color: #ffffff;
+  /*
+   * Taustagradientti maalataan kiinteällä ::before-kerroksella (alla), koska
+   * background-attachment: fixed ei toimi luotettavasti iOS Safarissa eikä
+   * Android Chromessa. Tässä on vain pohjaväri, joka näkyy esim. iOS:n
+   * overscroll-alueella.
+   */
   background-color: var(--color-night);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Kiinteä taustagradientti: pysyy ruudussa paikallaan vierityksen aikana.
+ * z-index: -1 pitää kerroksen sisällön takana ja pointer-events: none
+ * varmistaa, ettei kerros ota vastaan kosketuksia.
+ *
+ * Alimman hehkun sävy on tarkoituksella hillitty: kirkas alahehku jäi
+ * mobiilissa sivun alimpien elementtien taakse ja sai ne näyttämään
+ * valkoisen huntuisilta.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
   background-image:
     radial-gradient(circle at 15% -10%, #6d28d9 0%, rgba(109, 40, 217, 0) 55%),
     radial-gradient(circle at 90% 0%, #2563eb 0%, rgba(37, 99, 235, 0) 45%),
-    radial-gradient(circle at 50% 120%, #7c3aed 0%, rgba(124, 58, 237, 0) 60%),
+    radial-gradient(circle at 50% 115%, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 55%),
     linear-gradient(180deg, #2b1055 0%, #1b0b3a 60%, #120722 100%);
-  background-attachment: fixed;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Mobiilin safe area -alueet */

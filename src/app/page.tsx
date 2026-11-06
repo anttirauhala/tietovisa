@@ -12,14 +12,10 @@ export default function HomePage() {
           <Sparkles className="size-4" />
           Pikkujoulut 2026
         </p>
-        <h1 className="text-5xl leading-none font-black sm:text-7xl">
-          Pikkujoulu<span className="text-fuchsia-300">visa</span>
+        <h1 className="text-[clamp(1.75rem,9vw,3rem)] leading-none font-black text-balance sm:text-7xl">
+          <span className="block sm:inline">Pikkujoulu</span>
+          <span className="block text-fuchsia-300 sm:inline">visa</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-white/80 sm:text-xl">
-          Reaaliaikainen tietovisa koko porukalle. Juontaja näyttää kysymykset
-          projektorilta, pelaajat vastaavat omilla puhelimillaan – ilman sovellusta ja ilman
-          tunnuksia.
-        </p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
