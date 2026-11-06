@@ -105,7 +105,9 @@ describe("kysymystiedosto src/data/questions.json", () => {
     expect(hasQuestionAt(0)).toBe(true);
     expect(hasQuestionAt(getQuestionCount())).toBe(false);
     expect(() => getQuestionAt(-1)).toThrow();
-    expect(getQuestionAt(0).id).toBe("q01");
+    // Tunnisteet ovat satunnaisia (eivät paljasta järjestystä), joten
+    // tarkistetaan vain, että kysymyksellä on olemassa oleva tunniste.
+    expect(getQuestionAt(0).id.trim().length).toBeGreaterThan(0);
   });
 });
 

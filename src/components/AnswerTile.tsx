@@ -10,7 +10,7 @@ type AnswerTileProps = {
   index: number;
   text: string;
   state?: AnswerTileState;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "player";
   disabled?: boolean;
   onClick?: () => void;
   className?: string;
@@ -21,6 +21,12 @@ const SIZE_STYLES = {
   sm: "px-4 py-3 text-base rounded-2xl",
   md: "px-5 py-4 text-lg rounded-2xl",
   lg: "px-6 py-5 text-xl sm:text-2xl rounded-3xl",
+  /**
+   * Pelaajan puhelinnäkymä: mobiilissa kompaktimpi typografia ja välistys,
+   * jotta kysymys ja kaikki neljä vastausta mahtuvat ruutuun ilman vieritystä.
+   * `sm:`-koosta ylöspäin ilme on täsmälleen sama kuin `lg`:llä.
+   */
+  player: "px-4 py-3 text-base sm:px-6 sm:py-5 sm:text-2xl rounded-2xl sm:rounded-3xl",
 } as const;
 
 /**

@@ -18,6 +18,12 @@ import { isRevealedQuestion, type PlayerState } from "@/lib/game/types";
 import { clearPlayerSession } from "@/lib/session";
 
 /**
+ * Kysymystekstit tätä pidempiä pienennetään mobiilissa yhdellä fonttikoolla,
+ * jotta pitkä kysymys ei työnnä vastausvaihtoehtoja ruudun ulkopuolelle.
+ */
+const LONG_QUESTION_CHARS = 100;
+
+/**
  * Pelaajan pelinäkymä. Suunniteltu yhden käden käyttöön puhelimella:
  * neljä suurta vastauspainiketta, ei vaakasuuntaista vieritystä ja
  * selkeä vahvistus siitä, että vastaus on tallennettu.
@@ -150,6 +156,8 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
   const selectedIndex = state.me.hasAnsweredCurrent ? state.me.myAnswerIndex : pendingAnswer;
   const question = state.question;
   const revealed = question && isRevealedQuestion(question) ? question : null;
+  const questionTextClass =
+    question && question.question.length > LONG_QUESTION_CHARS ? "text-base" : "text-lg";
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 px-4 pt-safe pb-safe">
@@ -196,7 +204,9 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
 
           <TimerBar seconds={countdown.seconds} ratio={countdown.ratio} label="Aikaa" />
 
-          <h1 className="text-xl leading-snug font-black sm:text-2xl">{question.question}</h1>
+          <h1 className={`${questionTextClass} leading-snug font-black sm:text-2xl`}>
+            {question.question}
+          </h1>
 
           {hasAnswered ? (
             <div className="flex flex-1 flex-col justify-center gap-4">
@@ -216,7 +226,7 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
                     key={index}
                     index={index}
                     text={answer}
-                    size="md"
+                    size="player"
                     state={index === selectedIndex ? "selected" : "muted"}
                   />
                 ))}
@@ -227,13 +237,13 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
               </p>
             </div>
           ) : (
-            <div className="grid flex-1 auto-rows-fr grid-cols-1 gap-3">
+            <div className="grid flex-1 auto-rows-fr grid-cols-1 gap-2 sm:gap-3">
               {question.answers.map((answer, index) => (
                 <AnswerTile
                   key={index}
                   index={index}
                   text={answer}
-                  size="lg"
+                  size="player"
                   disabled={pendingAnswer !== null}
                   onClick={() => void submitAnswer(index)}
                 />
@@ -254,7 +264,9 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
 
       {room.status === "question_result" && revealed ? (
         <div className="flex flex-1 flex-col gap-4">
-          <h1 className="text-lg leading-snug font-black sm:text-xl">{revealed.question}</h1>
+          <h1 className={`${questionTextClass} leading-snug font-black sm:text-xl`}>
+            {revealed.question}
+          </h1>
 
           <Notice tone={state.me.currentIsCorrect ? "success" : "error"} className="text-base">
             {state.me.currentIsCorrect
@@ -276,7 +288,7 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
                   key={index}
                   index={index}
                   text={answer}
-                  size="md"
+                  size="player"
                   state={isCorrect ? "correct" : isOwn ? "wrong" : "muted"}
                   trailing={
                     isOwn ? (

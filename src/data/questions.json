@@ -1,24 +1,24 @@
 [
   {
-    "id": "q01",
+    "id": "qe680493c",
     "category": "Yleistieto",
     "question": "Mikä on Suomen pääkaupunki?",
     "answers": ["Turku", "Tampere", "Helsinki", "Oulu"],
     "correctAnswerIndex": 2,
-    "timeLimitSeconds": 20,
+    "timeLimitSeconds": 15,
     "points": 1000
   },
   {
-    "id": "q02",
+    "id": "q533e3427",
     "category": "Yleistieto",
     "question": "Mikä on maailman suurin valtameri?",
     "answers": ["Atlantin valtameri", "Intian valtameri", "Tyyni valtameri", "Pohjoinen jäämeri"],
     "correctAnswerIndex": 2,
-    "timeLimitSeconds": 20,
+    "timeLimitSeconds": 15,
     "points": 1000
   },
   {
-    "id": "q03",
+    "id": "q057dea32",
     "category": "Yleistieto",
     "question": "Kuinka monta minuuttia on yhdessä vuorokaudessa?",
     "answers": ["1 200", "1 440", "1 600", "2 400"],
@@ -27,25 +27,79 @@
     "points": 1000
   },
   {
-    "id": "q04",
+    "id": "q8bc02297",
     "category": "Yleistieto",
-    "question": "Mikä on kullan kemiallinen merkki?",
-    "answers": ["Ag", "Au", "Cu", "Fe"],
+    "question": "Kuinka monta planeettaa aurinkokunnassamme nykyisin luokitellaan planeetoiksi?",
+    "answers": ["7", "8", "9", "10"],
     "correctAnswerIndex": 1,
     "timeLimitSeconds": 15,
     "points": 1000
   },
   {
-    "id": "q29",
+    "id": "q8536b99e",
+    "category": "Yleistieto",
+    "question": "Mikä kaasu muodostaa suurimman osan maapallon ilmakehästä?",
+    "answers": ["Happi", "Hiilidioksidi", "Typpi", "Vety"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qc0a2719e",
+    "category": "Yleistieto",
+    "question": "Mikä on kullan kemiallinen merkki?",
+    "answers": ["Ag", "Au", "Fe", "Gd"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q73447e6d",
+    "category": "Yleistieto",
+    "question": "Minkä vitamiinin puute aiheuttaa keripukkia?",
+    "answers": ["A-vitamiinin", "B12-vitamiinin", "C-vitamiinin", "D-vitamiinin"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qde720643",
+    "category": "Yleistieto",
+    "question": "Missä kaupungissa järjestettiin ensimmäiset modernit olympialaiset vuonna 1896?",
+    "answers": ["Pariisissa", "Lontoossa", "Ateenassa", "Roomassa"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q9e443412",
+    "category": "Yleistieto",
+    "question": "Keneen liitetään Euroopan kirjapainotaidon vallankumous 1400-luvulla?",
+    "answers": ["Leonardo da Vinciin", "Johannes Gutenbergiin", "Galileo Galileihin", "Marco Poloon"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q7363f45d",
+    "category": "Yleistieto",
+    "question": "Kuinka monta sydäntä mustekalalla on?",
+    "answers": ["Yksi", "Kaksi", "Kolme", "Neljä"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q46bb093b",
     "category": "Hauskat kysymykset",
     "question": "Mikä on maailman suurin eläin?",
     "answers": ["Sinivalas", "Afrikannorsu", "Kirahvi", "Valkohai"],
     "correctAnswerIndex": 0,
-    "timeLimitSeconds": 20,
+    "timeLimitSeconds": 15,
     "points": 1000
   },
   {
-    "id": "q30",
+    "id": "q9956adb7",
     "category": "Hauskat kysymykset",
     "question": "Mikä näistä ei ole marja?",
     "answers": ["Mustikka", "Puolukka", "Karviainen", "Kurkku"],
@@ -54,20 +108,209 @@
     "points": 1000
   },
   {
-    "id": "q31",
+    "id": "qf5b2a6ba",
     "category": "Hauskat kysymykset",
     "question": "Kuinka kauan valolla kestää matkata Auringosta Maahan?",
     "answers": ["noin 8 sekuntia", "noin 8 minuuttia", "noin 8 tuntia", "noin 8 vuorokautta"],
     "correctAnswerIndex": 1,
-    "timeLimitSeconds": 20,
+    "timeLimitSeconds": 15,
     "points": 1000
   },
   {
-    "id": "q32",
+    "id": "q060c6eda",
     "category": "Hauskat kysymykset",
     "question": "Kuinka monta pelaajaa on jalkapallojoukkueessa kentällä samaan aikaan?",
     "answers": ["9", "10", "11", "12"],
     "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q5f4da0df",
+    "category": "Hauskat kysymykset",
+    "question": "Kuinka monta kertaa Maapallo mahtuisi tilavuudeltaan Auringon sisään?",
+    "answers": ["noin 130 kertaa", "noin 1 300 kertaa", "noin 13 000 kertaa", "noin 1,3 miljoonaa kertaa"],
+    "correctAnswerIndex": 3,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qb095e274",
+    "category": "IT-ala",
+    "question": "Mihin tarkoitukseen EURA-tietojärjestelmää käytetään Suomessa?",
+    "answers": ["Kuntien talousarvioihin", "EU:n rakennerahastohankkeisiin", "Verotietojen käsittelyyn", "Väestötietojen ylläpitoon"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qf8ccc4cb",
+    "category": "IT-ala",
+    "question": "Minä vuonna Netum aloitti toimintansa?",
+    "answers": ["1997", "2000", "2005", "2010"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q8ecc55ae",
+    "category": "IT-ala",
+    "question": "Mihin Netumin Truugo-palvelua ensisijaisesti käytetään?",
+    "answers": ["Sähköisten aineistojen validointiin", "Ohjelmistoprojektien hallintaan", "Tietoverkkojen valvontaan", "Taloushallinnon automatisointiin"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1500
+  },
+  {
+    "id": "q9c73e0d2",
+    "category": "IT-ala",
+    "question": "Mikä seuraavista suomalaisista IT-yhtiöistä on liikevaihdoltaan suurin (vuoden 2025 tiedot)?",
+    "answers": ["Solita", "Gofore", "Tieto", "Digia"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q5667d2c9",
+    "category": "IT-ala",
+    "question": "Mikä on IT-tukihenkilön yleisin ensimmäinen kysymys?",
+    "answers": ["Oletko kokeillut käynnistää uudelleen?", "Oletko maksanut Microsoft-lisenssin?", "Onko tietokoneesi liian vanha?", "Oletko kokeillut vaihtaa työpaikkaa?"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q215870b5",
+    "category": "Maailman ympäri",
+    "question": "Mikä kaupunki on Australian pääkaupunki?",
+    "answers": ["Sydney", "Melbourne", "Canberra", "Perth"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q78882d51",
+    "category": "Maailman ympäri",
+    "question": "Mikä kaupunki on Portugalin pääkaupunki?",
+    "answers": ["Porto", "Faro", "Lissabon", "Coimbra"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q73a0ebd7",
+    "category": "Maailman ympäri",
+    "question": "Missä maassa Gizan suuret pyramidit sijaitsevat?",
+    "answers": ["Egyptissä", "Sudanissa", "Libyassa", "Tunisiassa"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qd655c0d7",
+    "category": "Maailman ympäri",
+    "question": "Mikä on maailman suurin kuuma aavikko?",
+    "answers": ["Gobin aavikko", "Saharan aavikko", "Kalaharin aavikko", "Arabian aavikko"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q6bcfdcb2",
+    "category": "Maailman ympäri",
+    "question": "Mikä vuori on korkein merenpinnasta mitattuna?",
+    "answers": ["K2", "Kilimanjaro", "Mount Everest", "Aconcagua"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qe3ef5566",
+    "category": "Elokuvat ja TV-sarjat",
+    "question": "Kuka ohjasi alkuperäisen Star Wars: A New Hope -elokuvan?",
+    "answers": ["Steven Spielberg", "George Lucas", "Ridley Scott", "James Cameron"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qc671c56e",
+    "category": "Elokuvat ja TV-sarjat",
+    "question": "Kuinka monta Oscar-palkintoa Titanic voitti vuoden 1998 Oscar-gaalassa?",
+    "answers": ["7", "9", "11", "14"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q10ae853a",
+    "category": "Elokuvat ja TV-sarjat",
+    "question": "Missä kaupungissa Friends-sarjan kuusi ystävystä asuvat?",
+    "answers": ["Los Angelesissa", "Chicagossa", "New Yorkissa", "Bostonissa"],
+    "correctAnswerIndex": 2,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q953d8dcb",
+    "category": "Elokuvat ja TV-sarjat",
+    "question": "Kuka näyttelijä esittää Walter Whitea Breaking Bad -sarjassa?",
+    "answers": ["Aaron Paul", "Bryan Cranston", "Bob Odenkirk", "Giancarlo Esposito"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q3949fdba",
+    "category": "Elokuvat ja TV-sarjat",
+    "question": "Missä elokuvassa päähenkilö Thomas Anderson tunnetaan nimellä Neo?",
+    "answers": ["Blade Runner", "The Matrix", "Inception", "Minority Report"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qae2b7fb7",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä saksalainen joululeivonnainen sisältää rusinoita ja sitruksen kuorta?",
+    "answers": ["Stollen", "Panettone", "Baklava", "Babka"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q63e42876",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä pikaruoka on Japanissa joulun ajan perinne 1970-luvun markkinoinnin ansiosta?",
+    "answers": ["Sushi", "KFC:n paistettu kana", "Ramen", "Okonomiyaki"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qa4240d87",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä kala kuuluu perinteisesti moniin Puolan jouluaaton Wigilia-aterioihin?",
+    "answers": ["Lohi", "Karppi", "Turska", "Silli"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q2a171a08",
+    "category": "Ruoka ja juoma",
+    "question": "Mikä meksikolainen maissitaikinasta tehty ruoka kääritään lehteen ja höyrytetään?",
+    "answers": ["Tamales", "Empanadat", "Churrot", "Paella"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q2cf774eb",
+    "category": "Ruoka ja juoma",
+    "question": "Mistä kukan osasta kallisarvoinen sahramimauste kerätään?",
+    "answers": ["Emin punaisista luoteista", "Terälehdistä", "Juuresta", "Siemenkodasta"],
+    "correctAnswerIndex": 0,
     "timeLimitSeconds": 15,
     "points": 1000
   }

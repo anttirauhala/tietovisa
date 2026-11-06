@@ -35,7 +35,7 @@ export function TimerBar({
           {label}
         </span>
         <span
-          className={`font-black tabular-nums ${isUrgent ? "animate-pulse-soft text-rose-200" : "text-white"} text-4xl sm:text-5xl`}
+          className={`font-black tabular-nums ${isUrgent ? "animate-pulse-soft text-rose-200" : "text-white"} text-2xl sm:text-5xl`}
           aria-live="off"
         >
           {seconds}
