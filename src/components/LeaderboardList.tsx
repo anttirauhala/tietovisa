@@ -61,15 +61,17 @@ export function LeaderboardList({
               )}
             </span>
 
-            <span className={`min-w-0 flex-1 truncate font-bold ${textSize}`}>
-              {player.nickname}
+            <span
+              className={`flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 font-bold ${textSize}`}
+            >
+              <span className="min-w-0 truncate">{player.nickname}</span>
               {isHighlighted ? (
-                <span className="ml-2 rounded-full bg-fuchsia-400/25 px-2 py-0.5 text-xs font-semibold text-fuchsia-100 align-middle">
+                <span className="shrink-0 rounded-full bg-fuchsia-400/25 px-2 py-0.5 text-xs font-semibold text-fuchsia-100">
                   sinä
                 </span>
               ) : null}
               {player.isTied ? (
-                <span className="ml-2 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold text-white/80 align-middle">
+                <span className="shrink-0 rounded-full bg-white/15 px-2 py-0.5 text-xs font-semibold text-white/80">
                   jaettu sija
                 </span>
               ) : null}
