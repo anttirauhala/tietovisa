@@ -72,6 +72,7 @@ Migraatiot ovat hakemistossa `supabase/migrations/`:
 | `20260103000000_end_question_now.sql` | `end_question_now`: kysymyksen päättäminen kesken (juontajan tauko) |
 | `20260104000000_room_lifecycle.sql` | Vanhojen huoneiden siivous (`purge_old_rooms`) ja `created_at`-indeksi |
 | `20260105000000_room_snapshot_aggregates.sql` | Tilannekuvan kevennys: vastausrivien sijaan `answerCount`, `distribution` ja kysyjän oma `myAnswer` |
+| `20260106000000_room_snapshot_optional_players.sql` | Pelaajalista vain kun se näytetään (`p_include_players`) ja kysyjän oma sijoitus `myPlayer` – egressin pienennys |
 
 Tiedostonimen etuliite on migraation versio (aikaleima), jota Supabase CLI käyttää
 järjestyksen ja migraatiohistorian tunnistamiseen.
@@ -128,9 +129,14 @@ Tässä toteutuksessa reaaliaikaisuus hoidetaan **palvelinvälitteisellä tilaky
 selain hakee `GET /api/rooms/[roomId]/state` noin sekunnin välein (juontaja 900 ms, pelaaja
 1 100 ms) ja heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu.
 
-Kyselyä **ei koskaan pysäytetä**: jos välilehti on piilossa, väliä pidennetään 4 sekuntiin ja
-pelin päätyttyä 5 sekuntiin. Tämä on tärkeää juontajalle – muuten uusien pelaajien liittyminen
-näkyisi vasta, kun hän palaa selainvälilehdelle (esim. vaihdettuaan musiikkisovellukseen).
+Kyselyä **ei pysäytetä kesken pelin**: jos välilehti on piilossa, väliä pidennetään 4 sekuntiin.
+Tämä on tärkeää juontajalle – muuten uusien pelaajien liittyminen näkyisi vasta, kun hän palaa
+selainvälilehdelle (esim. vaihdettuaan musiikkisovellukseen).
+
+**Pelin päätyttyä kysely lopetetaan kokonaan.** `finished` on tilakoneen terminaalinen tila
+eikä voi enää muuttua mihinkään, joten loppuruudun pitäminen auki ei kuluta lainkaan
+funktioinvokaatioita eikä egressiä – aiemmin 70 avonaista puhelinta tuotti noin 50 000
+pyyntöä tunnissa täysin turhaan.
 
 Pelaajalla on lisäksi **kysymysvaiheen hiljainen ikkuna**. Kesken kysymyksen pelaajan näkymä ei
 voi muuttua muusta syystä kuin siitä, että juontaja keskeyttää kysymyksen: oma vastaus päivitetään
@@ -147,7 +153,7 @@ mobiiliverkossa, missä jokainen pyyntö pitää radiota hereillä vielä pyynn�
 
 ### Kysely on kevyt ja ehdollinen
 
-Kaksi asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
+Kolme asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
 
 1. **Tilannekuva sisältää aggregaatit, ei vastausrivejä.** Tietokannan `room_snapshot` palauttaa
    kuluvan kysymyksen osalta vain vastausten määrän (`answerCount`), jakauman (`distribution`,
@@ -159,8 +165,14 @@ Kaksi asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
    `serverNow`-kellosta, joten sama tila tuottaa saman tunnisteen riippumatta roolista – ja
    eri sisältö tuottaa aina eri tunnisteen, joten roolit eivät voi saada toistensa vastausta.
 
-Pelaajalle ei myöskään lähetetä koko pelaajalistaa kysymyksen aikana: lista tulee mukaan vasta
-tulostaulussa ja lopputilanteessa, joissa sitä näytetään. Oma sijoitus lasketaan palvelimella.
+3. **Pelaajalista siirretään vain, kun se näytetään.** Tietokannan `room_snapshot` palauttaa
+   pelaajalistan vain tulostaulu- ja loppuvaiheessa (tai kun kutsuja pyytää sen erikseen –
+   juontaja tarvitsee liittyjät odotushuoneessa). Muulloin pelaaja saa vain oman rivinsä ja
+   sijoituksensa (`myPlayer`, lasketaan SQL:ssä `rank()`-funktiolla, joka säilyttää jaetut
+   sijoitukset samalla säännöllä kuin palvelimen `rankPlayers`). 70 pelaajan huoneessa lista on
+   noin 8 kt jokaista kyselyä kohti, joten tämä pudottaa Supabasen egressin noin 330 MB:stä noin
+   70 MB:hen peliä kohti. Supabasen ilmaisen tason egress on 5 GB kuukaudessa, joten ero on
+   ratkaiseva, jos samalla projektilla pelataan useampi peli tai harjoitellaan ennen tapahtumaa.
 
 Kun palvelin vastaa 304:llä, selain ei päivitä kelloarviotaan, koska tyhjässä vastauksessa ei ole
 `serverNow`-arvoa. Seuraava tilanmuutos palauttaa koko tilan ja korjaa kelloarvion, joten ajastin
@@ -294,12 +306,12 @@ Testikattavuus:
 | `src/lib/game/stateMachine.test.ts` | Tilakoneen sallitut ja kielletyt siirtymät |
 | `src/lib/game/leaderboard.test.ts` | Tulostaulun deterministinen järjestys ja jaetut sijoitukset |
 | `src/lib/game/answerValidation.test.ts` | Vastauksen hyväksymisen säännöt (aika, toinen vastaus, väärä indeksi) |
-| `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättynyt peli, pelaajan kysymysvaiheen hiljainen ikkuna, turvakatto, kelloero, juontajan reaaliaikatahti |
+| `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättyneen pelin kyselyn lopetus, pelaajan kysymysvaiheen hiljainen ikkuna, turvakatto, kelloero, juontajan reaaliaikatahti |
 | `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
 | `src/lib/etag.test.ts` | ETag-tunnisteen vakaus, `serverNow`-kellon sivuuttaminen, If-None-Match-vertailu (useat arvot, jokerimerkki, heikko vertailu) |
 | `src/lib/api/conditional.test.ts` | Ehdollinen tilavastaus: 200 + ETag, 304 ilman runkoa, täysi vastaus vanhentuneella tunnisteella |
 | `src/lib/api/client.test.ts` | Selainpuolen client: If-None-Match-otsikko, 304:n tulkinta ja virhevastausten muunnos |
-| `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa, tilannekuvan aggregaatit (`answerCount`, `distribution`, `myAnswer`) |
+| `src/test/database.test.ts` | Migraatiot, RLS, oikeudet, rajoitteet, tilakoneen siirtymät tietokannassa, tilannekuvan aggregaatit (`answerCount`, `distribution`, `myAnswer`), pelaajalistan valinnainen siirto ja oma sijoitus (`myPlayer`) |
 | `src/test/gameFlow.test.ts` | Koko peli alusta loppuun: kaksi pelaajaa, pisteytys, myöhästyneet vastaukset, kaksinkertaisen pisteytyksen esto, tulostaulu, pelin päättäminen |
 | `src/test/interrupt.test.ts` | Kysymyksen keskeyttäminen kesken määräajan, myöhäisten vastausten hylkäys, juontajan token, idempotenssi, pelin päättäminen kesken sarjan |
 | `e2e/host-lobby.spec.ts` | Juontaja luo pelin: PIN-koodi, QR-koodin renderöityminen ja liittymislinkin toimivuus |
@@ -590,7 +602,7 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 ## 13. Tunnetut rajoitukset
 
 - **Reaaliaikaisuus on kyselypohjaista** (juontaja 0,9 s, pelaaja 1,1 s väli; pelaajalla
-  kysymyksen aikana harvempi), ei Supabase Realtime -tilausta.
+  kysymyksen aikana harvempi ja pelin päätyttyä ei lainkaan), ei Supabase Realtime -tilausta.
   Perustelu on kohdassa 5. Yhden illan pikkujouluvisaan tämä on riittävä ja tietoturvaltaan
   selvästi turvallisempi vaihtoehto. Rungon siirto on minimoitu (aggregaatit ja 304-vastaukset),
   mutta **tietokantakysely tehdään silti jokaista kyselyä kohti** – palvelin ei voi tietää tilan

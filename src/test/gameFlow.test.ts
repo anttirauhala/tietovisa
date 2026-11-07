@@ -466,9 +466,11 @@ describe("koko peli alusta loppuun", () => {
       startedAtMs + 1000,
     );
 
+    // Kysymysvaiheessa pelaajalista jätetään oletuksena pois (ks. egress),
+    // joten se pyydetään tässä erikseen: p_include_players = true.
     const snapshot = await callRpc<{
       players: { nickname: string; score: number; correctCount: number }[];
-    }>(db, "room_snapshot", [roomId]);
+    }>(db, "room_snapshot", [roomId, null, true]);
 
     expect(snapshot.players.map((player) => player.nickname)).toEqual([
       "Aino",

@@ -49,9 +49,25 @@ type SnapshotMyAnswer = {
   responseTimeMs: number;
 };
 
+/** Kysyjän oma rivi ja sijoitus. Lasketaan tietokannassa, jotta koko
+ * pelaajalistaa ei tarvitse siirtää kesken kysymyksen. */
+type SnapshotMe = {
+  id: string;
+  nickname: string;
+  score: number;
+  correctCount: number;
+  rank: number;
+};
+
 type Snapshot = {
   room: SnapshotRoom;
+  /**
+   * Pelaajalista. Tyhjä, kun listaa ei tarvita tässä vaiheessa – pelaaja näkee
+   * sen vain tulostaulussa ja lopputilanteessa.
+   */
   players: PublicPlayer[];
+  /** Kysyjä itse, tai null kun pelaajatunnistetta ei annettu. */
+  me: SnapshotMe | null;
   /** Kuinka moni on vastannut kuluvaan kysymykseen. */
   answerCount: number;
   /** Vastausten määrä vaihtoehdoittain (indeksi 0–3). */
@@ -70,17 +86,27 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * Hakee huoneen julkisen tilannekuvan.
  *
  * `playerId` annetaan vain pelaajanäkymässä. Silloin tietokanta palauttaa myös
- * kysyjän oman vastauksen (myAnswer) sen sijaan, että kaikki kuluvan
- * kysymyksen vastausrivit siirrettäisiin palvelimelle. Vastausmäärä ja
- * jakauma tulevat aggregaatteina aina.
+ * kysyjän oman vastauksen (myAnswer) ja oman sijoituksen (myPlayer) sen sijaan,
+ * että kaikki kuluvan kysymyksen vastausrivit siirrettäisiin palvelimelle.
+ *
+ * `includePlayers` ohjaa pelaajalistan siirtoa:
+ *   true  – aina (juontaja tarvitsee liittyjät odotushuoneessa)
+ *   false – ei koskaan (tarvitaan vain huoneen tila)
+ *   null  – automaattisesti vain vaiheissa, joissa lista näytetään
+ *           (tulostaulu ja lopputilanne)
+ *
+ * Pelaajalista on 70 pelaajan huoneessa noin 8 kt, joten sen jättäminen pois
+ * kysymysvaiheen kyselyistä on suurin yksittäinen egressin säästö.
  */
 export async function loadRoomSnapshot(
   roomId: string,
   playerId: string | null = null,
+  includePlayers: boolean | null = null,
 ): Promise<Snapshot> {
   const { data, error } = await getSupabaseAdmin().rpc("room_snapshot", {
     p_room_id: roomId,
     p_player_id: playerId,
+    p_include_players: includePlayers,
   });
 
   if (error) {
@@ -107,6 +133,17 @@ export async function loadRoomSnapshot(
       }))
     : [];
 
+  const meSource = isRecord(data.myPlayer) ? data.myPlayer : null;
+  const me: SnapshotMe | null = meSource
+    ? {
+        id: String(meSource.id),
+        nickname: String(meSource.nickname ?? ""),
+        score: Number(meSource.score ?? 0),
+        correctCount: Number(meSource.correctCount ?? 0),
+        rank: Number(meSource.rank ?? 0),
+      }
+    : null;
+
   const myAnswerSource = isRecord(data.myAnswer) ? data.myAnswer : null;
   const myAnswer: SnapshotMyAnswer | null = myAnswerSource
     ? {
@@ -128,6 +165,7 @@ export async function loadRoomSnapshot(
       playerCount: Number(room.playerCount ?? players.length),
     },
     players,
+    me,
     answerCount: Number(data.answerCount ?? 0),
     distribution: Array.isArray(data.distribution)
       ? data.distribution.map((count) => Number(count ?? 0))
@@ -243,7 +281,10 @@ export async function requirePlayerSession(
 
 export async function buildHostState(roomId: string, hostToken: string | null): Promise<HostState> {
   await requireHostSession(roomId, hostToken);
-  const snapshot = await loadRoomSnapshot(roomId);
+  // Juontajalle pelaajalista aina mukaan: se näyttää liittyjät odotushuoneessa
+  // ja tulostaulun. Juontajan kyselyitä on pelissä vain noin tuhat, joten
+  // listan siirto ei näy kokonaisuudessa.
+  const snapshot = await loadRoomSnapshot(roomId, null, true);
 
   return {
     role: "host",
@@ -260,9 +301,15 @@ export async function buildPlayerState(
   playerToken: string | null,
 ): Promise<PlayerState> {
   const session = await requirePlayerSession(roomId, playerToken);
+
+  /*
+   * Pelaajalista siirretään vain vaiheissa, joissa käyttöliittymä sitä näyttää
+   * (tulostaulu ja lopputilanne). Kysymyksen aikana riittää oma rivi ja
+   * sijoitus, jotka tietokanta laskee (myPlayer) – näin tilakyselyn runko ei
+   * kasva pelaajamäärän mukaan jokaista sekunnin välein tehtävää kyselyä kohti.
+   */
   const snapshot = await loadRoomSnapshot(roomId, session.playerId);
-  const ranked = rankPlayers(snapshot.players);
-  const self = ranked.find((player) => player.id === session.playerId);
+  const self = snapshot.me;
 
   if (!self) {
     throw new ApiError(401, "invalid_token", "Pelaajaa ei löytynyt tästä huoneesta.");
@@ -271,28 +318,18 @@ export async function buildPlayerState(
   const ownAnswer = snapshot.myAnswer;
   const showOwnResult = revealsAnswer(snapshot.room.status);
 
-  /*
-   * Koko pelaajalista lähetetään vain vaiheissa, joissa käyttöliittymä sitä
-   * näyttää (tulostaulu ja lopputilanne). Kysymyksen aikana riittää oma
-   * sijoitus, joka lasketaan palvelimella – näin tilakyselyn runkoon ei tule
-   * pelaajamäärän verran kenttiä jokaista sekunnin välein tehtävää kyselyä
-   * kohti.
-   */
-  const includePlayers =
-    snapshot.room.status === "leaderboard" || snapshot.room.status === "finished";
-
   return {
     role: "player",
     serverNow: new Date().toISOString(),
     room: toRoomSummary(snapshot.room),
-    players: includePlayers ? ranked : [],
+    players: rankPlayers(snapshot.players),
     me: {
       id: self.id,
       nickname: self.nickname,
       score: self.score,
       correctCount: self.correctCount,
       rank: self.rank,
-      totalPlayers: ranked.length,
+      totalPlayers: snapshot.room.playerCount,
       hasAnsweredCurrent: ownAnswer !== null,
       myAnswerIndex: ownAnswer ? ownAnswer.answerIndex : null,
       currentPointsAwarded: showOwnResult && ownAnswer ? ownAnswer.pointsAwarded : null,

@@ -208,7 +208,8 @@ export async function advanceFromLeaderboard(
   roomId: string,
   hostTokenHash: string,
 ): Promise<"question" | "finished"> {
-  const snapshot = await loadRoomSnapshot(roomId);
+  // Tarvitaan vain tila ja kysymysindeksi – ei pelaajalistaa.
+  const snapshot = await loadRoomSnapshot(roomId, null, false);
 
   if (snapshot.room.status !== "leaderboard") {
     throw new ApiError(

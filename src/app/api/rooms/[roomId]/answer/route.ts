@@ -37,7 +37,8 @@ export async function POST(request: Request, context: RouteContext) {
     const session = await requirePlayerSession(roomId, playerToken);
     // playerId välitetään, jotta tietokanta palauttaa pelaajan oman vastauksen
     // sen sijaan että kaikki kuluvan kysymyksen vastausrivit siirrettäisiin.
-    const snapshot = await loadRoomSnapshot(roomId, session.playerId);
+    // Validointiin riittää huoneen tila ja oma vastaus – ei pelaajalistaa.
+    const snapshot = await loadRoomSnapshot(roomId, session.playerId, false);
 
     const activeQuestionIndex = snapshot.room.currentQuestionIndex;
     const alreadyAnswered = snapshot.myAnswer !== null;

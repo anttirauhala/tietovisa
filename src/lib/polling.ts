@@ -1,10 +1,11 @@
 /**
  * Kyselyvälin valinta. Puhdas funktio, jotta käyttäytyminen on testattavissa.
  *
- * Kyselyä ei koskaan pysäytetä kokonaan: jos välilehti on piilossa, väliä
+ * Kyselyä ei pysäytetä kesken pelin: jos välilehti on piilossa, väliä
  * pidennetään. Tämä on tärkeää juontajalle – jos hän vaihtaa välilehteä tai
  * toinen sovellus peittää ruudun, uusien pelaajien liittyminen näkyisi muuten
- * vasta kun hän palaa välilehdelle.
+ * vasta kun hän palaa välilehdelle. Ainoa poikkeus on päättynyt peli, jossa
+ * kysely lopetetaan kokonaan (tila ei voi enää muuttua).
  *
  * Pelaajalla on lisäksi kysymysvaiheen hiljainen ikkuna: kysymyksen aikana
  * pelaajan näkymä ei voi muuttua mistään muusta syystä kuin siitä, että
@@ -18,8 +19,6 @@
 export const DEFAULT_POLL_INTERVAL_MS = 1000;
 /** Piilotetun välilehden kyselyväli: hidastettu, mutta ei pysäytetty. */
 export const HIDDEN_POLL_INTERVAL_MS = 4000;
-/** Päättyneen pelin tila ei enää muutu, joten sitä kysytään harvoin. */
-export const FINISHED_POLL_INTERVAL_MS = 5000;
 /**
  * Pelaajan kysymysvaiheen hiljaisen ikkunan enimmäispituus.
  * Toimii turvakattona: juontajan "Lopeta kysymys nyt" näkyy pelaajalle
@@ -54,9 +53,15 @@ export function nextPollDelayMs({
   questionEndsAtMs,
   clockOffsetMs,
   nowMs,
-}: PollingState): number {
+}: PollingState): number | null {
+  /*
+   * Peli on päättynyt. `finished` on tilakoneen terminaalinen tila, joten uutta
+   * tietoa ei ole eikä tule: kysely lopetetaan kokonaan sen sijaan että sitä
+   * vain hidastettaisiin. Muuten avoimeksi jäänyt pelaajavälilehti kuluttaisi
+   * invokaatio- ja egress-kiintiötä loputtomiin.
+   */
   if (status === "finished") {
-    return Math.max(FINISHED_POLL_INTERVAL_MS, intervalMs);
+    return null;
   }
 
   if (hidden) {

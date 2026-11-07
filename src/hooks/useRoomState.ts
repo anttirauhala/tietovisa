@@ -15,7 +15,8 @@ import { computeClockOffset } from "@/lib/time";
  * pelaajiin, vastauksiin tai oikeisiin vastauksiin.
  *
  * Kysely hidastuu, kun välilehti on piilossa, ja palaa normaaliin vauhtiin
- * heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu.
+ * heti, kun välilehti palaa näkyviin tai verkkoyhteys palautuu. Peli päättyy
+ * terminaaliseen tilaan, joten sen jälkeen kysely lopetetaan kokonaan.
  *
  * Kysely on ehdollinen (ETag + If-None-Match): jos tila on ennallaan,
  * palvelin vastaa 304 Not Modified ilman runkoa. Silloin uutta tilaa ei
@@ -141,7 +142,9 @@ export function useRoomState<T extends StateShape>({
     let timeoutId: number | undefined;
 
     const tick = () => {
-      if (disposedRef.current) {
+      // Päättynyt peli on terminaalinen tila: kun lopullinen tila on saatu,
+      // uutta tietoa ei ole eikä tule, joten kyselyä ei enää jatketa.
+      if (disposedRef.current || statusRef.current === "finished") {
         return;
       }
 
@@ -158,6 +161,12 @@ export function useRoomState<T extends StateShape>({
       });
 
       void fetchOnce();
+
+      // null = älä ajasta uutta kyselyä (peli päättynyt).
+      if (delay === null) {
+        return;
+      }
+
       timeoutId = window.setTimeout(tick, delay);
     };
 

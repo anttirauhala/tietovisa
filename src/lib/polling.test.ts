@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  FINISHED_POLL_INTERVAL_MS,
   HIDDEN_POLL_INTERVAL_MS,
   PLAYER_DEADLINE_FAST_WINDOW_MS,
   PLAYER_QUESTION_QUIET_MAX_MS,
@@ -16,7 +15,7 @@ const PLAYER_INTERVAL = 1100;
 const NOW = 1_700_000_000_000;
 
 /** Oletukset: näkyvä välilehti, kysymysvaihe, pelaaja, ei määräaikaa. */
-function poll(overrides: Partial<PollingState> = {}): number {
+function poll(overrides: Partial<PollingState> = {}): number | null {
   return nextPollDelayMs({
     hidden: false,
     status: "question",
@@ -41,17 +40,18 @@ describe("kyselyvälin valinta", () => {
 
     expect(hostDelay).toBe(HIDDEN_POLL_INTERVAL_MS);
     expect(playerDelay).toBe(HIDDEN_POLL_INTERVAL_MS);
-    // Piilotettu välilehti ei koskaan lakkaa kysymästä: viive on aina äärellinen.
+    // Piilotettu välilehti ei kesken pelin lakkaa kysymästä: viive on äärellinen.
     expect(Number.isFinite(hostDelay)).toBe(true);
     expect(hostDelay).toBeGreaterThan(0);
   });
 
-  it("hidastaa kyselyä eniten, kun peli on päättynyt", () => {
-    expect(poll({ status: "finished", intervalMs: HOST_INTERVAL })).toBe(FINISHED_POLL_INTERVAL_MS);
-    // Päättynyt peli voittaa myös piilotetun välilehden säännön (suurempi viive).
-    expect(poll({ hidden: true, status: "finished", intervalMs: HOST_INTERVAL })).toBe(
-      FINISHED_POLL_INTERVAL_MS,
-    );
+  it("lopettaa kyselyn kokonaan, kun peli on päättynyt", () => {
+    // Päättynyt peli on terminaalinen: uutta tietoa ei ole eikä tule.
+    expect(poll({ status: "finished", intervalMs: HOST_INTERVAL })).toBeNull();
+    expect(poll({ status: "finished" })).toBeNull();
+    expect(poll({ role: "host", status: "finished" })).toBeNull();
+    // Myös piilotettu välilehti lopettaa: tila ei voi enää muuttua.
+    expect(poll({ hidden: true, status: "finished" })).toBeNull();
   });
 
   it("ei koskaan lyhennä väliä alle pyydetyn", () => {
@@ -60,7 +60,6 @@ describe("kyselyvälin valinta", () => {
     expect(poll({ intervalMs: longInterval })).toBe(longInterval);
     expect(poll({ status: "lobby", intervalMs: longInterval })).toBe(longInterval);
     expect(poll({ hidden: true, status: "lobby", intervalMs: longInterval })).toBe(longInterval);
-    expect(poll({ status: "finished", intervalMs: longInterval })).toBe(longInterval);
   });
 
   it("käsittelee tuntemattoman tilan normaalina kyselynä", () => {
@@ -90,10 +89,8 @@ describe("pelaajan kysymysvaiheen hiljainen ikkuna", () => {
   });
 
   it("ei hidasta muissa vaiheissa eikä juontajalla", () => {
-    for (const status of ["lobby", "question_result", "leaderboard", "finished"]) {
-      expect(poll({ status, questionEndsAtMs: NOW + 14_000 })).toBe(
-        status === "finished" ? FINISHED_POLL_INTERVAL_MS : PLAYER_INTERVAL,
-      );
+    for (const status of ["lobby", "question_result", "leaderboard"]) {
+      expect(poll({ status, questionEndsAtMs: NOW + 14_000 })).toBe(PLAYER_INTERVAL);
     }
 
     // Juontaja näyttää vastausmäärän reaaliajassa, joten sitä ei koskaan hiljennetä.
@@ -115,10 +112,7 @@ describe("pelaajan kysymysvaiheen hiljainen ikkuna", () => {
     );
   });
 
-  it("säilyttää piilotetun välilehden ja päättyneen pelin säännöt", () => {
+  it("säilyttää piilotetun välilehden säännön", () => {
     expect(poll({ hidden: true, questionEndsAtMs: NOW + 14_000 })).toBe(HIDDEN_POLL_INTERVAL_MS);
-    expect(poll({ status: "finished", questionEndsAtMs: NOW + 14_000 })).toBe(
-      FINISHED_POLL_INTERVAL_MS,
-    );
   });
 });

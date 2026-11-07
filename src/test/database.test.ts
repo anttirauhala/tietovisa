@@ -57,6 +57,7 @@ describe("SQL-migraatiot", () => {
     expect(files).toContain("20260101000100_functions.sql");
     expect(files).toContain("20260102000000_player_token_index.sql");
     expect(files).toContain("20260105000000_room_snapshot_aggregates.sql");
+    expect(files).toContain("20260106000000_room_snapshot_optional_players.sql");
 
     // Järjestys on versionumeron (aikaleiman) mukainen.
     expect([...files].sort()).toEqual(files);
@@ -380,5 +381,162 @@ describe("tilannekuvan aggregaatit", () => {
     // Juontajan näkymä ei sisällä kenenkään henkilökohtaista vastausta.
     expect(hostView.myAnswer).toBeNull();
     expect(hostView.answerCount).toBe(1);
+  });
+});
+
+describe("tilannekuvan pelaajalista ja oma sijoitus", () => {
+  /**
+   * Pelaajalista on 70 pelaajan huoneessa noin 8 kt jokaista tilakyselyä kohti.
+   * Se siirretään vain vaiheissa, joissa se näytetään (tulostaulu ja
+   * lopputilanne), sekä silloin kun kutsuja pyytää sen erikseen. Kysymyksen
+   * aikana pelaaja tarvitsee vain oman rivinsä ja sijoituksensa (myPlayer),
+   * jotta Supabasen egress pysyy ilmaisen tason rajoissa.
+   */
+  it("jättää pelaajalistan pois, kun sitä ei näytetä", async () => {
+    const pin = "600001";
+    const roomId = await callRpc<string>(db, "create_room", [pin, TOKEN_HASH_A]);
+    await callRpcStatus(db, "join_room", [pin, "Aino", TOKEN_HASH_B]);
+    await callRpcStatus(db, "join_room", [pin, "Eino", TOKEN_HASH_C]);
+
+    // Odotushuone: pelaaja ei näe listaa, juontaja näkee liittyjät.
+    const lobbyPlayer = await callRpc<{ players: unknown[] }>(db, "room_snapshot", [roomId]);
+    const lobbyHost = await callRpc<{ players: unknown[] }>(db, "room_snapshot", [
+      roomId,
+      null,
+      true,
+    ]);
+
+    expect(lobbyPlayer.players).toEqual([]);
+    expect(lobbyHost.players).toHaveLength(2);
+
+    const startedAtMs = Date.now();
+    await callRpcStatus(db, "start_question", [
+      roomId,
+      TOKEN_HASH_A,
+      0,
+      new Date(startedAtMs).toISOString(),
+      new Date(startedAtMs + QUESTION_LIMIT_MS).toISOString(),
+    ]);
+
+    // Kysymysvaihe: oletus jättää listan pois.
+    const question = await callRpc<{ players: unknown[] }>(db, "room_snapshot", [roomId]);
+    expect(question.players).toEqual([]);
+
+    // Erikseen pyydettynä lista tulee myös kysymysvaiheessa.
+    const forced = await callRpc<{ players: { nickname: string }[] }>(db, "room_snapshot", [
+      roomId,
+      null,
+      true,
+    ]);
+    expect(forced.players.map((player) => player.nickname)).toEqual(["Aino", "Eino"]);
+
+    // Tulostaulu: lista tulee oletuksena mukaan.
+    await callRpcStatus(db, "reveal_question", [
+      roomId,
+      TOKEN_HASH_A,
+      new Date(startedAtMs + QUESTION_LIMIT_MS + 10).toISOString(),
+    ]);
+    await callRpcStatus(db, "show_leaderboard", [roomId, TOKEN_HASH_A]);
+
+    const leaderboard = await callRpc<{ players: unknown[]; room: { status: string } }>(
+      db,
+      "room_snapshot",
+      [roomId],
+    );
+    expect(leaderboard.room.status).toBe("leaderboard");
+    expect(leaderboard.players).toHaveLength(2);
+
+    // Listan voi jättää pois myös tulostaululla, kun sitä ei tarvita.
+    const withoutPlayers = await callRpc<{ players: unknown[] }>(db, "room_snapshot", [
+      roomId,
+      null,
+      false,
+    ]);
+    expect(withoutPlayers.players).toEqual([]);
+  });
+
+  it("palauttaa oman sijoituksen ilman koko pelaajalistaa", async () => {
+    const pin = "600002";
+    const roomId = await callRpc<string>(db, "create_room", [pin, TOKEN_HASH_A]);
+    const aino = await callRpcStatus(db, "join_room", [pin, "Aino", TOKEN_HASH_B]);
+    const eino = await callRpcStatus(db, "join_room", [pin, "Eino", TOKEN_HASH_C]);
+    const pekka = await callRpcStatus(db, "join_room", [pin, "Pekka", "5".repeat(64)]);
+
+    const startedAtMs = Date.now();
+    await callRpcStatus(db, "start_question", [
+      roomId,
+      TOKEN_HASH_A,
+      0,
+      new Date(startedAtMs).toISOString(),
+      new Date(startedAtMs + QUESTION_LIMIT_MS).toISOString(),
+    ]);
+
+    // Aino ja Eino saavat samat pisteet -> jaettu sijoitus 1. Pekka ei vastaa.
+    await callRpcStatus(db, "submit_answer", [
+      roomId,
+      String(aino.playerId),
+      0,
+      1,
+      true,
+      700,
+      500,
+      new Date(startedAtMs + 500).toISOString(),
+    ]);
+    await callRpcStatus(db, "submit_answer", [
+      roomId,
+      String(eino.playerId),
+      0,
+      1,
+      true,
+      700,
+      500,
+      new Date(startedAtMs + 500).toISOString(),
+    ]);
+
+    type MyPlayer = {
+      id: string;
+      nickname: string;
+      score: number;
+      correctCount: number;
+      rank: number;
+    };
+
+    const ainoView = await callRpc<{ myPlayer: MyPlayer; players: unknown[] }>(
+      db,
+      "room_snapshot",
+      [roomId, String(aino.playerId)],
+    );
+    const einoView = await callRpc<{ myPlayer: MyPlayer }>(db, "room_snapshot", [
+      roomId,
+      String(eino.playerId),
+    ]);
+    const pekkaView = await callRpc<{ myPlayer: MyPlayer }>(db, "room_snapshot", [
+      roomId,
+      String(pekka.playerId),
+    ]);
+
+    // Oma rivi ja sijoitus saadaan ilman koko listaa.
+    expect(ainoView.players).toEqual([]);
+    expect(ainoView.myPlayer).toEqual({
+      id: String(aino.playerId),
+      nickname: "Aino",
+      score: 700,
+      correctCount: 1,
+      rank: 1,
+    });
+    expect(ainoView.myPlayer.rank).toBe(1);
+    // Jaettu sijoitus: samat pisteet ja oikeat vastaukset -> sama sija.
+    expect(einoView.myPlayer.rank).toBe(1);
+    expect(pekkaView.myPlayer).toEqual({
+      id: String(pekka.playerId),
+      nickname: "Pekka",
+      score: 0,
+      correctCount: 0,
+      rank: 3,
+    });
+
+    // Ilman pelaajatunnistetta omaa riviä ei palauteta.
+    const hostView = await callRpc<{ myPlayer: unknown }>(db, "room_snapshot", [roomId]);
+    expect(hostView.myPlayer).toBeNull();
   });
 });
