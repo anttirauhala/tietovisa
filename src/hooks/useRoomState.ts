@@ -21,11 +21,16 @@ import { computeClockOffset } from "@/lib/time";
  * palvelin vastaa 304 Not Modified ilman runkoa. Silloin uutta tilaa ei
  * aseteta, joten sekunnin välein toistuva kysely ei siirrä eikä renderöi
  * turhaan pelaajalistoja eikä kysymyssisältöä.
+ *
+ * Kyselyväli ei ole vakio: `nextPollDelayMs` valitsee sen tilan mukaan.
+ * Pelaajalla on kysymysvaiheessa hiljainen ikkuna (ks. lib/polling.ts),
+ * koska pelaajan näkymä ei voi muuttua kesken kysymyksen. Juontajalla
+ * ikkunaa ei ole: se näyttää vastausmäärän reaaliajassa.
  */
 
 type StateShape = {
   serverNow: string;
-  room: { status: string };
+  room: { status: string; questionEndsAt: string | null };
 };
 
 export type UseRoomStateOptions = {
@@ -63,6 +68,13 @@ export function useRoomState<T extends StateShape>({
   const disposedRef = useRef(false);
   /** Viimeksi saatu ETag: lähetetään seuraavassa kyselyssä If-None-Match-otsikkona. */
   const etagRef = useRef<string | null>(null);
+  /** Kysymyksen määräaika palvelimen kellona; hiljaisen ikkunan laskentaan. */
+  const questionEndsAtRef = useRef<number | null>(null);
+  /**
+   * Kelloarvio refissä, jotta kyselysilmukka ei käynnisty uudelleen joka
+   * tilavastauksen jälkeen (effectin riippuvuudet pysyvät vakioina).
+   */
+  const clockOffsetRef = useRef(0);
 
   const fetchOnce = useCallback(
     async (signal?: AbortSignal) => {
@@ -95,10 +107,15 @@ export function useRoomState<T extends StateShape>({
         } else {
           etagRef.current = result.etag;
           statusRef.current = result.data.room.status;
+          questionEndsAtRef.current = parseDeadline(result.data.room.questionEndsAt);
+
+          const offset = computeClockOffset(result.data.serverNow, receivedAt);
+          clockOffsetRef.current = offset;
+
           setState(result.data);
           setError(null);
           setErrorCode(null);
-          setClockOffsetMs(computeClockOffset(result.data.serverNow, receivedAt));
+          setClockOffsetMs(offset);
         }
         setLastUpdatedAt(Date.now());
       } else if (result.code !== "aborted") {
@@ -115,6 +132,7 @@ export function useRoomState<T extends StateShape>({
     disposedRef.current = false;
     // Uusi istunto tai huone: edellisen istunnon ETag ei ole enää voimassa.
     etagRef.current = null;
+    questionEndsAtRef.current = null;
 
     if (!roomId || !token) {
       return;
@@ -133,6 +151,10 @@ export function useRoomState<T extends StateShape>({
         hidden: document.visibilityState === "hidden",
         status: statusRef.current,
         intervalMs,
+        role,
+        questionEndsAtMs: questionEndsAtRef.current,
+        clockOffsetMs: clockOffsetRef.current,
+        nowMs: Date.now(),
       });
 
       void fetchOnce();
@@ -157,7 +179,7 @@ export function useRoomState<T extends StateShape>({
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume);
     };
-  }, [fetchOnce, intervalMs, roomId, token]);
+  }, [fetchOnce, intervalMs, role, roomId, token]);
 
   const refresh = useCallback(async () => {
     await fetchOnce();
@@ -167,4 +189,17 @@ export function useRoomState<T extends StateShape>({
   const isLoading = Boolean(roomId && token) && !hasSettled;
 
   return { state, error, errorCode, isLoading, clockOffsetMs, lastUpdatedAt, refresh };
+}
+
+/**
+ * Määräaika millisekunteina palvelimen kellona. Puuttuva tai virheellinen
+ * arvo tulkitaan "ei tiedossa" -tilaksi, jolloin kyselyväli on normaali.
+ */
+function parseDeadline(value: string | null): number | null {
+  if (!value) {
+    return null;
+  }
+
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? null : ms;
 }

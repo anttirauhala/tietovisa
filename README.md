@@ -132,6 +132,19 @@ Kyselyä **ei koskaan pysäytetä**: jos välilehti on piilossa, väliä pidenne
 pelin päätyttyä 5 sekuntiin. Tämä on tärkeää juontajalle – muuten uusien pelaajien liittyminen
 näkyisi vasta, kun hän palaa selainvälilehdelle (esim. vaihdettuaan musiikkisovellukseen).
 
+Pelaajalla on lisäksi **kysymysvaiheen hiljainen ikkuna**. Kesken kysymyksen pelaajan näkymä ei
+voi muuttua muusta syystä kuin siitä, että juontaja keskeyttää kysymyksen: oma vastaus päivitetään
+heti vastauksen jälkeen tehdyllä erillisellä kyselyllä, ajastin lasketaan paikallisesti
+määräajasta (`questionEndsAt` + kelloarvio) eikä vastausmäärää tai jakaumaa lähetetä pelaajalle
+ennen tulosvaihetta. Siksi pelaaja kysyy tilaa kesken kysymyksen harvemmin – enintään 5 sekunnin
+välein ja määräajan lähestyessä takaisin normaaliin tahtiin. Viisi sekuntia on **turvakatto**:
+juontajan "Lopeta kysymys nyt" näkyy pelaajalle enintään sen verran myöhemmin. Juontajaa ei
+koskaan hiljennetä, koska se näyttää vastausmäärän reaaliajassa.
+
+Käytännössä tämä pudottaa pelaajan kyselyt kysymysvaiheessa noin kolmannekseen (14 → ~4
+kyselyä 15 sekunnin kysymystä kohti) ja vähentää samalla puhelimen radioyhteyden heräämisiä
+mobiiliverkossa, missä jokainen pyyntö pitää radiota hereillä vielä pyynnön jälkeen.
+
 ### Kysely on kevyt ja ehdollinen
 
 Kaksi asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
@@ -281,7 +294,7 @@ Testikattavuus:
 | `src/lib/game/stateMachine.test.ts` | Tilakoneen sallitut ja kielletyt siirtymät |
 | `src/lib/game/leaderboard.test.ts` | Tulostaulun deterministinen järjestys ja jaetut sijoitukset |
 | `src/lib/game/answerValidation.test.ts` | Vastauksen hyväksymisen säännöt (aika, toinen vastaus, väärä indeksi) |
-| `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättynyt peli |
+| `src/lib/polling.test.ts` | Kyselyvälin valinta: näkyvä ja piilotettu välilehti, päättynyt peli, pelaajan kysymysvaiheen hiljainen ikkuna, turvakatto, kelloero, juontajan reaaliaikatahti |
 | `src/lib/time.test.ts` | Kellokorjaus, jäljellä oleva aika, etenemispalkki |
 | `src/lib/etag.test.ts` | ETag-tunnisteen vakaus, `serverNow`-kellon sivuuttaminen, If-None-Match-vertailu (useat arvot, jokerimerkki, heikko vertailu) |
 | `src/lib/api/conditional.test.ts` | Ehdollinen tilavastaus: 200 + ETag, 304 ilman runkoa, täysi vastaus vanhentuneella tunnisteella |
@@ -498,7 +511,7 @@ src/
 │  ├─ etag.ts                      Pelitilan ETag-tunniste (ehdollinen tilakysely)
 │  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
 │  └─ rateLimit.ts                 Nopeusrajoitus
-├─ data/questions.json             Kysymykset (8 kpl)
+├─ data/questions.json             Kysymykset (35 kpl)
 ├─ test/                           PGlite-integraatiotestien apurit
 └─ (juuri) e2e/                    Playwright-selaintestit ja niiden apurit
 ```
@@ -576,7 +589,8 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
 
 ## 13. Tunnetut rajoitukset
 
-- **Reaaliaikaisuus on kyselypohjaista** (n. 1 s väli), ei Supabase Realtime -tilausta.
+- **Reaaliaikaisuus on kyselypohjaista** (juontaja 0,9 s, pelaaja 1,1 s väli; pelaajalla
+  kysymyksen aikana harvempi), ei Supabase Realtime -tilausta.
   Perustelu on kohdassa 5. Yhden illan pikkujouluvisaan tämä on riittävä ja tietoturvaltaan
   selvästi turvallisempi vaihtoehto. Rungon siirto on minimoitu (aggregaatit ja 304-vastaukset),
   mutta **tietokantakysely tehdään silti jokaista kyselyä kohti** – palvelin ei voi tietää tilan
