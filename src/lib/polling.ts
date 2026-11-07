@@ -80,6 +80,24 @@ export function nextPollDelayMs({
 }
 
 /**
+ * Kuinka kauan yksittäinen tilakysely saa kestää ennen kuin se peruutetaan.
+ *
+ * Mobiiliyhteydellä pyyntö voi jäädä roikkumaan (solu vaihtuu, hissi, kuollut
+ * mutta avoin yhteys), eikä selain katkaise sitä itse. Ilman aikakatkaisua
+ * roikkuva pyyntö estää näkymän päivittymisen kymmeniä sekunteja – pahimmillaan
+ * pelaaja menettää koko kysymyksen.
+ *
+ * Aikakatkaisu on kaksi kyselyväliä, joten hidas mutta toimiva pyyntö ehtii
+ * valmistua ennen kuin päällekkäisiä pyyntöjä kerääntyy monta. Alaraja suojaa
+ * palvelimen kylmäkäynnistykseltä, joka voi kestää yli sekunnin.
+ */
+export const POLL_TIMEOUT_MIN_MS = 4000;
+
+export function pollTimeoutMs(delayMs: number): number {
+  return Math.max(POLL_TIMEOUT_MIN_MS, delayMs * 2);
+}
+
+/**
  * Pelaajan hiljainen ikkuna kesken kysymystä: kysytään harvemmin, mutta
  * korkeintaan turvakaton verran. Palauttaa null, kun normaali tahti riittää
  * (juontaja, muu vaihe, määräaika käsillä tai määräaika ei tiedossa).

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { apiConditionalRequest } from "@/lib/api/client";
-import { nextPollDelayMs } from "@/lib/polling";
+import { nextPollDelayMs, pollTimeoutMs } from "@/lib/polling";
 import { computeClockOffset } from "@/lib/time";
 
 /**
@@ -77,12 +77,26 @@ export function useRoomState<T extends StateShape>({
    */
   const clockOffsetRef = useRef(0);
 
+  /**
+   * Kyselyjen järjestysnumero. Mobiiliyhteydellä kaksi kyselyä voi olla yhtä
+   * aikaa ilmassa ja hitaampi niistä voi saapua viimeisenä. Ilman
+   * järjestysnumeroa vanha vastaus ylikirjoittaisi uudemman tilan: esimerkiksi
+   * vastauksen jälkeen näytetty "Vastaus tallennettu" ehtisi vaihtua takaisin
+   * vastaamattomaksi, vaikka vastaus on jo tallennettu. Numero kasvaa koko
+   * hookin eliniän, joten myös istunnon vaihtuessa vanha vastaus häviää.
+   */
+  const requestSeqRef = useRef(0);
+  const appliedSeqRef = useRef(0);
+  /** Käynnissä oleva kysely, jotta se voidaan keskeyttää aikakatkaisulla. */
+  const abortRef = useRef<AbortController | null>(null);
+
   const fetchOnce = useCallback(
     async (signal?: AbortSignal) => {
       if (!roomId || !token) {
         return;
       }
 
+      const seq = (requestSeqRef.current += 1);
       const receivedAt = Date.now();
       const result = await apiConditionalRequest<T>(`/api/rooms/${roomId}/state`, {
         hostToken: role === "host" ? token : null,
@@ -94,6 +108,12 @@ export function useRoomState<T extends StateShape>({
       if (signal?.aborted || disposedRef.current) {
         return;
       }
+
+      // Vanhempi vastaus saapui uudemman jälkeen: tuore tila voittaa.
+      if (seq < appliedSeqRef.current) {
+        return;
+      }
+      appliedSeqRef.current = seq;
 
       if (result.ok) {
         if (result.notModified) {
@@ -160,7 +180,29 @@ export function useRoomState<T extends StateShape>({
         nowMs: Date.now(),
       });
 
-      void fetchOnce();
+      /*
+       * Jokainen kysely saa oman keskeyttimen ja aikakatkaisun. Aiempia
+       * kesken olevia pyyntöjä ei keskeytetä uuden tieltä: jos latenssi on
+       * tasaisesti väliä pidempi, jokainen pyyntö tapettaisiin ennen kuin se
+       * ehtii valmistua eikä näkymä päivittyisi koskaan. Keskeytys tehdään
+       * siksi vasta aikakatkaisulla – tai kun verkko palaa taikka komponentti
+       * puretaan.
+       */
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const abortTimer = window.setTimeout(
+        () => controller.abort(),
+        pollTimeoutMs(delay ?? intervalMs),
+      );
+
+      void fetchOnce(controller.signal).finally(() => {
+        window.clearTimeout(abortTimer);
+
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      });
 
       // null = älä ajasta uutta kyselyä (peli päättynyt).
       if (delay === null) {
@@ -174,6 +216,14 @@ export function useRoomState<T extends StateShape>({
 
     const resume = () => {
       if (document.visibilityState === "visible") {
+        /*
+         * Verkko tai välilehti palasi. Keskeneräinen pyyntö lähti eri
+         * verkkotilanteessa (esimerkiksi ennen tunnelia) eikä siitä ole enää
+         * hyötyä, joten se keskeytetään ja tila haetaan heti uudelleen.
+         */
+        abortRef.current?.abort();
+        abortRef.current = null;
+
         window.clearTimeout(timeoutId);
         timeoutId = window.setTimeout(tick, 0);
       }
@@ -185,6 +235,8 @@ export function useRoomState<T extends StateShape>({
     return () => {
       disposedRef.current = true;
       window.clearTimeout(timeoutId);
+      abortRef.current?.abort();
+      abortRef.current = null;
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume);
     };

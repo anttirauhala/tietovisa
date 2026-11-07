@@ -153,7 +153,7 @@ mobiiliverkossa, missä jokainen pyyntö pitää radiota hereillä vielä pyynn�
 
 ### Kysely on kevyt ja ehdollinen
 
-Kolme asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
+Neljä asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
 
 1. **Tilannekuva sisältää aggregaatit, ei vastausrivejä.** Tietokannan `room_snapshot` palauttaa
    kuluvan kysymyksen osalta vain vastausten määrän (`answerCount`), jakauman (`distribution`,
@@ -173,6 +173,13 @@ Kolme asiaa pitävät sekunnin välein toistuvan kyselyn halpana:
    noin 8 kt jokaista kyselyä kohti, joten tämä pudottaa Supabasen egressin noin 330 MB:stä noin
    70 MB:hen peliä kohti. Supabasen ilmaisen tason egress on 5 GB kuukaudessa, joten ero on
    ratkaiseva, jos samalla projektilla pelataan useampi peli tai harjoitellaan ennen tapahtumaa.
+4. **Kyselyllä on aikakatkaisu ja vastaukset järjestetään.** Mobiiliyhteydellä pyyntö voi
+   jäädä roikkumaan (solu vaihtuu, hissi, kuollut mutta avoin yhteys), eikä selain katkaise sitä
+   itse. Siksi jokainen tilakysely peruutetaan, kun kaksi kyselyväliä on kulunut (vähintään 4 s),
+   ja verkko- tai välilehtipaluu peruuttaa keskeneräisen pyynnön heti, jotta tila haetaan uudelleen
+   tuoreena. Peruutus ei näy virheenä. Jokaisella pyynnöllä on lisäksi järjestysnumero: jos kaksi
+   vastausta saapuu väärässä järjestyksessä, vanhempi hylätään, joten hidas vastaus ei voi
+   palauttaa näkymää taaksepäin kesken kysymyksen.
 
 Kun palvelin vastaa 304:llä, selain ei päivitä kelloarviotaan, koska tyhjässä vastauksessa ei ole
 `serverNow`-arvoa. Seuraava tilanmuutos palauttaa koko tilan ja korjaa kelloarvion, joten ajastin

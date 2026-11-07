@@ -4,7 +4,9 @@ import {
   HIDDEN_POLL_INTERVAL_MS,
   PLAYER_DEADLINE_FAST_WINDOW_MS,
   PLAYER_QUESTION_QUIET_MAX_MS,
+  POLL_TIMEOUT_MIN_MS,
   nextPollDelayMs,
+  pollTimeoutMs,
   type PollingState,
 } from "./polling";
 
@@ -114,5 +116,36 @@ describe("pelaajan kysymysvaiheen hiljainen ikkuna", () => {
 
   it("säilyttää piilotetun välilehden säännön", () => {
     expect(poll({ hidden: true, questionEndsAtMs: NOW + 14_000 })).toBe(HIDDEN_POLL_INTERVAL_MS);
+  });
+});
+
+describe("tilakyselyn aikakatkaisu", () => {
+  it("antaa hitaalle mutta toimivalle pyynnölle kaksi kyselyväliä aikaa", () => {
+    expect(pollTimeoutMs(PLAYER_QUESTION_QUIET_MAX_MS)).toBe(2 * PLAYER_QUESTION_QUIET_MAX_MS);
+    expect(pollTimeoutMs(HIDDEN_POLL_INTERVAL_MS)).toBe(2 * HIDDEN_POLL_INTERVAL_MS);
+  });
+
+  it("pitää alarajan, jotta kylmäkäynnistys ei katkaise pyyntöä", () => {
+    // Normaalitahti on niin tiheä, että kaksinkertainen väli jäisi liian lyhyeksi.
+    expect(pollTimeoutMs(PLAYER_INTERVAL)).toBe(POLL_TIMEOUT_MIN_MS);
+    expect(pollTimeoutMs(HOST_INTERVAL)).toBe(POLL_TIMEOUT_MIN_MS);
+    expect(pollTimeoutMs(0)).toBe(POLL_TIMEOUT_MIN_MS);
+  });
+
+  it("on aina pidempi kuin kyselyväli, jotta pyyntö ehtii valmistua", () => {
+    for (const delay of [
+      HOST_INTERVAL,
+      PLAYER_INTERVAL,
+      HIDDEN_POLL_INTERVAL_MS,
+      PLAYER_QUESTION_QUIET_MAX_MS,
+    ]) {
+      expect(pollTimeoutMs(delay)).toBeGreaterThan(delay);
+    }
+  });
+
+  it("kasvaa kyselyvälin mukana, joten hiljainen ikkuna ei katkaise pyyntöä", () => {
+    expect(pollTimeoutMs(PLAYER_QUESTION_QUIET_MAX_MS)).toBeGreaterThan(
+      pollTimeoutMs(PLAYER_INTERVAL),
+    );
   });
 });
