@@ -225,51 +225,6 @@
     "points": 1000
   },
   {
-    "id": "qe3ef5566",
-    "category": "Elokuvat ja TV-sarjat",
-    "question": "Kuka ohjasi alkuperäisen Star Wars: A New Hope -elokuvan?",
-    "answers": ["Steven Spielberg", "George Lucas", "Ridley Scott", "James Cameron"],
-    "correctAnswerIndex": 1,
-    "timeLimitSeconds": 15,
-    "points": 1000
-  },
-  {
-    "id": "qc671c56e",
-    "category": "Elokuvat ja TV-sarjat",
-    "question": "Kuinka monta Oscar-palkintoa Titanic voitti vuoden 1998 Oscar-gaalassa?",
-    "answers": ["7", "9", "11", "14"],
-    "correctAnswerIndex": 2,
-    "timeLimitSeconds": 15,
-    "points": 1000
-  },
-  {
-    "id": "q10ae853a",
-    "category": "Elokuvat ja TV-sarjat",
-    "question": "Missä kaupungissa Friends-sarjan kuusi ystävystä asuvat?",
-    "answers": ["Los Angelesissa", "Chicagossa", "New Yorkissa", "Bostonissa"],
-    "correctAnswerIndex": 2,
-    "timeLimitSeconds": 15,
-    "points": 1000
-  },
-  {
-    "id": "q953d8dcb",
-    "category": "Elokuvat ja TV-sarjat",
-    "question": "Kuka näyttelijä esittää Walter Whitea Breaking Bad -sarjassa?",
-    "answers": ["Aaron Paul", "Bryan Cranston", "Bob Odenkirk", "Giancarlo Esposito"],
-    "correctAnswerIndex": 1,
-    "timeLimitSeconds": 15,
-    "points": 1000
-  },
-  {
-    "id": "q3949fdba",
-    "category": "Elokuvat ja TV-sarjat",
-    "question": "Missä elokuvassa päähenkilö Thomas Anderson tunnetaan nimellä Neo?",
-    "answers": ["Blade Runner", "The Matrix", "Inception", "Minority Report"],
-    "correctAnswerIndex": 1,
-    "timeLimitSeconds": 15,
-    "points": 1000
-  },
-  {
     "id": "qae2b7fb7",
     "category": "Ruoka ja juoma",
     "question": "Mikä saksalainen joululeivonnainen sisältää rusinoita ja sitruksen kuorta?",
