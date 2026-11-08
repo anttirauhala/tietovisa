@@ -10,11 +10,11 @@ export default function HomePage() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-10 px-4 py-12 pt-safe pb-safe sm:px-6">
       <div className="text-center">
         <Image
-          src="/pikkujouluvisa-hahmo.svg"
-          alt="Pikkujouluvisan maskotti: silmälasipäinen IT-hahmo joulupukinhatussa miettii vastausta"
-          width={620}
-          height={820}
-          className="mx-auto mb-2 h-auto w-32 drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)] sm:w-40"
+          src="/robot.png"
+          alt="Pikkujouluvisan maskotti: joulupukinhatussa oleva robotti miettii vastausta pitäen kädessään juomapulloa"
+          width={1312}
+          height={1199}
+          className="mx-auto mb-2 h-auto w-36 sm:w-48 drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
         />
         <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-semibold tracking-widest uppercase">
           <Sparkles className="size-4" />
