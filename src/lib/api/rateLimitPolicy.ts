@@ -33,6 +33,20 @@ export const ROOM_PLAYER_CAPACITY = 200;
  */
 export const JOIN_RATE_LIMIT_PER_MINUTE = 250;
 
+/**
+ * Vastaukset minuutissa. Kysymysten aikaraja on 15 s (data/questions.json),
+ * joten rivakalla juontajalla kahden peräkkäisen kysymyksen vastaukset
+ * voivat osua samaan 60 sekunnin liukuvaan ikkunaan. Mitoitus: täysi
+ * 200 pelaajan huone kahteen kysymykseen = 400 vastausta, plus vara
+ * uudelleenyrityksille (verkkovirheen jälkeinen uusi napautus). 75 pelaajan
+ * seurue käyttää rajasta pahimmillaan noin 30 % (2 x 75 = 150).
+ *
+ * Raja on silti selvästi tiukempi kuin tilakyselyn: vastausreitti tekee
+ * kolme tietokantakierrosta, joten 500/min tarkoittaa korkeintaan noin
+ * 25 tietokantakutsua sekunnissa yhdeltä IP-osoitteelta.
+ */
+export const ANSWER_RATE_LIMIT_PER_MINUTE = 500;
+
 /** Pelaajan tilakyselyn perusväli millisekunteina (PlayerRoom: intervalMs). */
 export const PLAYER_POLL_INTERVAL_MS = 1100;
 

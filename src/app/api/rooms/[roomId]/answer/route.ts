@@ -1,5 +1,6 @@
 import { jsonErrorResponse, jsonResponse, parseWith, readJsonBody } from "@/lib/api/errors";
 import { answerRequestSchema } from "@/lib/api/schemas";
+import { ANSWER_RATE_LIMIT_PER_MINUTE } from "@/lib/api/rateLimitPolicy";
 import { assertRoomId, enforceRateLimit, requirePlayerToken } from "@/lib/api/server";
 import { validateAnswerSubmission } from "@/lib/game/answerValidation";
 import { isAnswerCorrect, scoreAnswer } from "@/lib/questions";
@@ -29,7 +30,13 @@ export async function POST(request: Request, context: RouteContext) {
   try {
     const { roomId } = await context.params;
     assertRoomId(roomId);
-    enforceRateLimit(request, "rooms:answer", 120, 60_000);
+    /*
+     * Mitoitus ks. lib/api/rateLimitPolicy.ts: kahden peräkkäisen 15 s
+     * kysymyksen vastaukset voivat osua samaan liukuvaan ikkunaan, ja
+     * operaattorin CGNAT voi näyttää koko seurueen yhtenä IP-osoitteena,
+     * joten rajan pitää riittää täyteen huoneeseen kahdesti minuutissa.
+     */
+    enforceRateLimit(request, "rooms:answer", ANSWER_RATE_LIMIT_PER_MINUTE, 60_000);
 
     const playerToken = requirePlayerToken(request);
     const body = parseWith(answerRequestSchema, await readJsonBody(request));

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ANSWER_RATE_LIMIT_PER_MINUTE,
   JOIN_RATE_LIMIT_PER_MINUTE,
   ROOM_PLAYER_CAPACITY,
   STATE_RATE_LIMIT_PER_MINUTE,
@@ -29,6 +30,17 @@ describe("nopeusrajoitusten mitoitus", () => {
 
   it("täysi 200 pelaajan huone mahtuu tilakyselyn rajaan", () => {
     expect(statePollsPerMinute(ROOM_PLAYER_CAPACITY)).toBeLessThan(STATE_RATE_LIMIT_PER_MINUTE);
+  });
+
+  it("vastausraja kattaa kahden peräkkäisen kysymyksen vastaukset täydestä huoneesta", () => {
+    // Kysymysten aikaraja on 15 s, joten rivakalla juontajalla kahden
+    // kysymyksen vastaukset voivat osua samaan 60 s liukuvaan ikkunaan.
+    expect(ANSWER_RATE_LIMIT_PER_MINUTE).toBeGreaterThanOrEqual(ROOM_PLAYER_CAPACITY * 2);
+  });
+
+  it("75 pelaajan seurue käyttää vastausrajasta korkeintaan kolmanneksen", () => {
+    // Pahin tapaus: kaksi kysymystä samassa ikkunassa = 2 x 75 = 150 vastausta.
+    expect(75 * 2).toBeLessThanOrEqual(ANSWER_RATE_LIMIT_PER_MINUTE / 3);
   });
 
   it("kysymysvaiheen hiljainen ikkuna ei kasvata huipputahtia", () => {
