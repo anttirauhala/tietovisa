@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { QRCodeSVG } from "qrcode.react";
 import { useSyncExternalStore } from "react";
 
@@ -50,6 +51,15 @@ export function useJoinUrl(pin: string): string | null {
 export function QrJoinPanel({ pin, joinUrl }: { pin: string; joinUrl: string | null }) {
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">
+      <Image
+        src="/robot-party.png"
+        alt=""
+        aria-hidden="true"
+        width={1207}
+        height={1303}
+        className="h-auto w-24 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:hidden lg:block lg:w-70"
+      />
+
       {/*
         QR-koodi nostetaan koristeiden (esim. liittymisen tähtieffektien)
         yläpuolelle omalla z-indeksillään. Vain tämä valkoinen paneli on ylinnä:

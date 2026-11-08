@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { ArrowRight, Flag, ListOrdered, Sparkles, Square, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -430,13 +431,22 @@ function LeaderboardStage({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* Maskotti kannustaa välitulosten äärellä. */}
+      <Image
+        src="/robot-aplodes.png"
+        alt="Pikkujouluvisan robottimaskotti tuulettaa välituloksia"
+        width={1209}
+        height={1301}
+        className="mx-auto h-auto w-32 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:w-40"
+      />
+
       <Card>
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-3 text-3xl font-black">
             <ListOrdered className="size-7" />
             Tilanne
           </h2>
-          <span className="text-sm font-semibold text-white/70 tabular-nums">
+          <span className="text-2xl font-semibold text-white/70 tabular-nums">
             {questionIndex + 1} / {questionCount} kysymystä pelattu
           </span>
         </div>
@@ -487,6 +497,18 @@ function FinishedStage({ players }: { players: HostState["players"] }) {
   const winner = players[0] ?? null;
   const isTie = winner?.isTied ?? false;
 
+  /** Sama maskotti voittajan molemmilla puolilla – koriste, ei sisältöä. */
+  const mascot = (
+    <Image
+      src="/robot-yes.png"
+      alt=""
+      aria-hidden="true"
+      width={1211}
+      height={1299}
+      className="h-auto w-20 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:w-32"
+    />
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <Confetti />
@@ -496,9 +518,17 @@ function FinishedStage({ players }: { players: HostState["players"] }) {
           <Sparkles className="size-4" />
           Peli päättynyt
         </span>
-        <h2 className="text-4xl font-black sm:text-6xl">
-          {winner ? (isTie ? "Jaettu voitto!" : `Voittaja: ${winner.nickname}`) : "Ei pelaajia"}
-        </h2>
+        {winner ? (
+          <div className="flex w-full items-center justify-center gap-3 sm:gap-6">
+            {mascot}
+            <h2 className="min-w-0 text-4xl font-black break-words sm:text-6xl">
+              {isTie ? "Jaettu voitto!" : `Voittaja: ${winner.nickname}`}
+            </h2>
+            {mascot}
+          </div>
+        ) : (
+          <h2 className="text-4xl font-black sm:text-6xl">Ei pelaajia</h2>
+        )}
         {winner ? (
           <p className="text-2xl font-bold tabular-nums text-white/85">
             {winner.score.toLocaleString("fi-FI")} pistettä
