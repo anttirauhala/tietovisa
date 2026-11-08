@@ -40,25 +40,35 @@ body {
 }
 
 /*
- * Kiinteä taustagradientti: pysyy ruudussa paikallaan vierityksen aikana.
- * z-index: -1 pitää kerroksen sisällön takana ja pointer-events: none
+ * Kiinteä taustakuva: pysyy ruudussa paikallaan vierityksen aikana.
+ * z-index: -2 pitää kerroksen sisällön takana ja pointer-events: none
  * varmistaa, ettei kerros ota vastaan kosketuksia.
- *
- * Alimman hehkun sävy on tarkoituksella hillitty: kirkas alahehku jäi
- * mobiilissa sivun alimpien elementtien taakse ja sai ne näyttämään
- * valkoisen huntuisilta.
  */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-image: url("/background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/*
+ * Läpinäkyvä tumma peitekerros, jotta taustakuva näkyy ja teksti erottuu.
+ * z-index: -1 asettaa tämän taustakuvan päälle mutta sisällön alle.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    radial-gradient(circle at 15% -10%, #6d28d9 0%, rgba(109, 40, 217, 0) 55%),
-    radial-gradient(circle at 90% 0%, #2563eb 0%, rgba(37, 99, 235, 0) 45%),
-    radial-gradient(circle at 50% 115%, rgba(124, 58, 237, 0.28) 0%, rgba(124, 58, 237, 0) 55%),
-    linear-gradient(180deg, #2b1055 0%, #1b0b3a 60%, #120722 100%);
+  background:
+    linear-gradient(180deg, rgba(27, 10, 45, 0.45) 0%, rgba(18, 7, 34, 0.55) 60%, rgba(12, 4, 22, 0.6) 100%);
 }
 
 /* Mobiilin safe area -alueet */

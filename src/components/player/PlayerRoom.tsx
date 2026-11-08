@@ -275,6 +275,8 @@ function PlayerRoomInner({ session }: { session: { roomId: string; playerToken: 
               Oikea vastaus: {revealed.answers[revealed.correctAnswerIndex]}
             </span>
           </Notice>
+          {state.me.currentIsCorrect && <Confetti />}
+
 
           <div className="grid grid-cols-1 gap-2">
             {revealed.answers.map((answer, index) => {

@@ -125,7 +125,7 @@ export function JoinForm() {
               onChange={(event) => setNickname(event.target.value.slice(0, NICKNAME_MAX_LENGTH))}
               maxLength={NICKNAME_MAX_LENGTH}
               autoComplete="nickname"
-              placeholder="nimimerkki"
+              placeholder="Nimimerkki"
               className="min-h-[56px] rounded-2xl border border-white/25 bg-white/10 px-4 text-xl font-bold outline-none placeholder:text-white/35 focus:border-fuchsia-300"
               aria-label="Nimimerkki"
             />
