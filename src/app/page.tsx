@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Gift, QrCode, Trophy, Users } from "lucide-react";
+import { QrCode, Trophy, Users } from "lucide-react";
 
 /**
  * Aloitussivu: juontaja tai pelaaja.
@@ -27,9 +27,6 @@ export default function HomePage() {
           href="/host"
           className="tv-card group flex flex-col gap-3 p-7 transition hover:border-fuchsia-300/50 hover:bg-white/15"
         >
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700">
-            <Trophy className="size-7" />
-          </span>
           <h2 className="text-2xl font-black">Olen juontaja</h2>
           <p className="text-white/75">
             Luo pelihuone, näytä liittymiskoodi ja QR-koodi, käynnistä kysymykset ja seuraa
@@ -44,9 +41,6 @@ export default function HomePage() {
           href="/join"
           className="tv-card group flex flex-col gap-3 p-7 transition hover:border-emerald-300/50 hover:bg-white/15"
         >
-          <span className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700">
-            <Gift className="size-7" />
-          </span>
           <h2 className="text-2xl font-black">Liity peliin</h2>
           <p className="text-white/75">
             Syötä juontajan näyttämä liittymiskoodi tai skannaa QR-koodi. Tarvitset vain
