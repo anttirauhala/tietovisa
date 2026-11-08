@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Gift, QrCode, Sparkles, Trophy, Users } from "lucide-react";
+import { Gift, QrCode, Trophy, Users } from "lucide-react";
 
 /**
  * Aloitussivu: juontaja tai pelaaja.
@@ -16,10 +16,6 @@ export default function HomePage() {
           height={1199}
           className="mx-auto mb-2 h-auto w-36 sm:w-48 drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
         />
-        <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-semibold tracking-widest uppercase">
-          <Sparkles className="size-4" />
-          Pikkujoulut 2026
-        </p>
         <h1 className="text-[clamp(1.75rem,9vw,3rem)] leading-none font-black text-balance sm:text-7xl">
           <span className="block sm:inline">Pikkujoulu</span>
           <span className="block text-fuchsia-300 sm:inline">visa</span>
