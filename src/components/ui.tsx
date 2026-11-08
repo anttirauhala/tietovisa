@@ -35,11 +35,17 @@ export function Button({
 export function Card({
   children,
   className = "",
+  style,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
 }) {
-  return <div className={`tv-card p-5 sm:p-7 ${className}`}>{children}</div>;
+  return (
+    <div className={`tv-card p-5 sm:p-7 ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
 
 export function Spinner({ label = "Ladataan…" }: { label?: string }) {

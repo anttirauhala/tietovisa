@@ -50,7 +50,12 @@ export function useJoinUrl(pin: string): string | null {
 export function QrJoinPanel({ pin, joinUrl }: { pin: string; joinUrl: string | null }) {
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-center sm:gap-10">
-      <div className="rounded-3xl bg-white p-4 shadow-xl">
+      {/*
+        QR-koodi nostetaan koristeiden (esim. liittymisen tähtieffektien)
+        yläpuolelle omalla z-indeksillään. Vain tämä valkoinen paneli on ylinnä:
+        valkoinen tausta on peittävä, joten QR-koodin päältä ei näy mitään läpi.
+      */}
+      <div className="relative z-20 rounded-3xl bg-white p-4 shadow-xl">
         {joinUrl ? (
           <QRCodeSVG
             value={joinUrl}

@@ -156,6 +156,35 @@ body::after {
   animation: tv-pulse 1.6s ease-in-out infinite;
 }
 
+/**
+ * Tähtieffekti, joka ilmestyy kun pelaaja liittyy peliin. Tähti skaalautuu
+ * esiin, viipyy hetken ja hiipuu. Kesto on sama kuin STAR_LIFETIME_MS
+ * HostLobby-komponentissa, joten tähti ehditään poistaa vasta animaation
+ * päätyttyä.
+ */
+@keyframes tv-star-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0) translate(-50%, -50%);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1) translate(-50%, -50%);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1) translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0) translate(-50%, -50%);
+  }
+}
+
+.animate-star-glow {
+  animation: tv-star-glow 1s ease-out forwards;
+}
+
 .confetti-piece {
   position: absolute;
   top: 0;
