@@ -185,6 +185,111 @@ body::after {
   animation: tv-star-glow 1s ease-out forwards;
 }
 
+/**
+ * "netum"-teksti (ks. HostLobby): teksti liikkuu koko ruudun alueella,
+ * pomppaa reunoista takaisin ja pyörii koko ajan.
+ *
+ * X- ja Y-suunnat ovat erillisiä animaatioita eri kestoilla, joten liikerata
+ * kattaa koko ruudun eikä kulje vain yhtä suoraa viivaa pitkin. `alternate`
+ * kääntää liikkeen suunnan reunassa (pomppaus). Laatikko on 24rem (size-96),
+ * joten liike pysähtyy täsmälleen ruudun reunaan ja pyörivä teksti pysyy
+ * laatikon sisällä. Pyöriminen on erillään omassa spanissaan.
+ */
+@keyframes tv-hub-bounce-x {
+  from {
+    left: 0;
+  }
+  to {
+    left: calc(100% - 24rem);
+  }
+}
+
+@keyframes tv-hub-bounce-y {
+  from {
+    top: 0;
+  }
+  to {
+    top: calc(100% - 24rem);
+  }
+}
+
+@keyframes tv-hub-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-hub-bounce {
+  animation:
+    tv-hub-bounce-x 11s linear infinite alternate,
+    tv-hub-bounce-y 7s linear infinite alternate;
+}
+
+.animate-hub-spin {
+  animation: tv-hub-spin 8s linear infinite;
+}
+
+/**
+ * Maskotin pieni hyppy: robotti hyppää hieman ylöspäin ja palaa takaisin
+ * 2 sekunnin välein. Hypyn osuus kierrosta on lyhyt, joten suurimman osan
+ * ajasta kuva on paikallaan. Vain transformaatio animoituu, joten asettelu
+ * ei värähdä.
+ */
+@keyframes tv-robot-hop {
+  0%,
+  10%,
+  100% {
+    transform: translateY(0);
+  }
+  5% {
+    transform: translateY(-22px);
+  }
+}
+
+.animate-robot-hop {
+  animation: tv-robot-hop 2s ease-in-out infinite;
+}
+
+/**
+ * Voittonäkymän kaksi maskottia hyppivät yhtäjaksoisesti: hypyn jälkeen
+ * alkaa heti uusi, eikä väliin jää taukoa. Hyppy ei ole tasainen sinusoidi,
+ * vaan siinä on kyykky (squash) ennen nousua, venytys ilmassa ja pehmeä
+ * alastulo – siksi liike näyttää elävältä. Toiselle robotille annetaan
+ * puolen kierroksen viive (ks. HostRoom), jolloin ne hyppivät vuorotellen.
+ */
+@keyframes tv-robot-bounce {
+  0% {
+    transform: translateY(0) scale(1, 1);
+    animation-timing-function: ease-in;
+  }
+  9% {
+    transform: translateY(4px) scale(1.08, 0.9);
+    animation-timing-function: ease-out;
+  }
+  38% {
+    transform: translateY(-26px) scale(0.96, 1.05);
+    animation-timing-function: ease-in;
+  }
+  58% {
+    transform: translateY(0) scale(1, 1);
+    animation-timing-function: ease-out;
+  }
+  66% {
+    transform: translateY(4px) scale(1.08, 0.9);
+    animation-timing-function: ease-in-out;
+  }
+  82%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+}
+
+/* Kyykky ja venytys ankkuroituvat kuvan alareunaan (jalkoihin). */
+.animate-robot-bounce {
+  transform-origin: 50% 100%;
+  animation: tv-robot-bounce 1.05s infinite;
+}
+
 .confetti-piece {
   position: absolute;
   top: 0;
@@ -212,6 +317,10 @@ body::after {
   .animate-pop,
   .animate-slide-up,
   .animate-pulse-soft,
+  .animate-hub-bounce,
+  .animate-hub-spin,
+  .animate-robot-hop,
+  .animate-robot-bounce,
   .confetti-piece {
     animation: none;
   }

@@ -13,6 +13,11 @@ import type { RankedPlayer } from "@/lib/game/types";
  */
 const STAR_LIFETIME_MS = 1_100;
 
+/** Ruudulla liikkuvan "netum"-tekstin sisältö ja ulkoasu. */
+const HUB_LABEL = "netum";
+const HUB_GREEN = "#4ade80";
+const FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+
 type Star = {
   id: string;
   /** Sijainti prosentteina koko ruudusta. */
@@ -170,6 +175,35 @@ export function HostLobby({
           ))}
         </div>
       ) : null}
+
+      {/*
+        "netum"-teksti: koko ruudun kiinteä taso, jossa teksti liikkuu, pyörii
+        ja pomppaa ruudun reunoista. Taso on z-10 eli QR-koodin valkoisen
+        panelin (z-20) alapuolella, joten teksti kulkee aina QR-koodin takaa
+        eikä peitä sitä milloinkaan. Ulompi laatikko hoitaa liikkeen (x/y) ja
+        sisempi span pyörimisen, jottei pyörivä teksti valu ruudun reunan yli.
+        Koristeena aria-hidden, ettei ruudunlukija toista tekstiä.
+      */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-10 overflow-hidden"
+        data-testid="hub-bouncer"
+      >
+        <div className="animate-hub-bounce absolute top-0 left-0 flex size-96 items-center justify-center">
+          <span
+            className="animate-hub-spin text-6xl font-black tracking-[0.15em] select-none"
+            style={{
+              color: HUB_GREEN,
+              fontFamily: FONT_FAMILY,
+              WebkitTextStroke: `4px ${HUB_GREEN}`,
+              paintOrder: "stroke fill",
+              textShadow: "0 0 22px rgba(74, 222, 128, 0.5)",
+            }}
+          >
+            {HUB_LABEL}
+          </span>
+        </div>
+      </div>
 
       {error ? <Notice tone="error">{error}</Notice> : null}
 

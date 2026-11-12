@@ -57,7 +57,7 @@ export function QrJoinPanel({ pin, joinUrl }: { pin: string; joinUrl: string | n
         aria-hidden="true"
         width={1207}
         height={1303}
-        className="h-auto w-24 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:hidden lg:block lg:w-70"
+        className="animate-robot-hop h-auto w-24 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:hidden lg:block lg:w-70"
       />
 
       {/*

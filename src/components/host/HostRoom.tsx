@@ -497,15 +497,20 @@ function FinishedStage({ players }: { players: HostState["players"] }) {
   const winner = players[0] ?? null;
   const isTie = winner?.isTied ?? false;
 
-  /** Sama maskotti voittajan molemmilla puolilla – koriste, ei sisältöä. */
-  const mascot = (
+  /**
+   * Sama maskotti voittajan molemmilla puolilla – koriste, ei sisältöä.
+   * Robotit hyppivät yhtäjaksoisesti; jälkimmäiselle annetaan puolen
+   * kierroksen viive, jotta ne hyppivät vuorotellen.
+   */
+  const mascot = (animationDelayMs: number) => (
     <Image
       src="/robot-yes.png"
       alt=""
       aria-hidden="true"
       width={1211}
       height={1299}
-      className="h-auto w-20 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:w-32"
+      style={{ animationDelay: `${animationDelayMs}ms` }}
+      className="animate-robot-bounce h-auto w-20 shrink-0 drop-shadow-[0_14px_26px_rgba(0,0,0,0.45)] sm:w-32"
     />
   );
 
@@ -520,11 +525,11 @@ function FinishedStage({ players }: { players: HostState["players"] }) {
         </span>
         {winner ? (
           <div className="flex w-full items-center justify-center gap-3 sm:gap-6">
-            {mascot}
+            {mascot(0)}
             <h2 className="min-w-0 text-4xl font-black break-words sm:text-6xl">
               {isTie ? "Jaettu voitto!" : `Voittaja: ${winner.nickname}`}
             </h2>
-            {mascot}
+            {mascot(525)}
           </div>
         ) : (
           <h2 className="text-4xl font-black sm:text-6xl">Ei pelaajia</h2>
