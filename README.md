@@ -472,7 +472,9 @@ Juontajan sivulla on **Näytä**-painike, jolla näet mitä kentässä todella o
 3. Näytä projektorilta liittymiskoodi ja QR-koodi.
 4. Kun pelaajat ovat liittyneet, paina **Aloita peli**.
 5. Kysymys etenee: **Näytä oikea vastaus** → **Näytä tilanne** → **Seuraava kysymys**.
-   Kysymyksen päätyttyä siirtymä tulosvaiheeseen tapahtuu myös automaattisesti.
+   **Seuraava kysymys** näyttää juontajalle 5–1-lähtölaskennan ennen siirtymää
+   (pelaajat eivät näe laskuria). Kysymyksen päätyttyä siirtymä tulosvaiheeseen
+   tapahtuu myös automaattisesti.
    Kesken kysymyksen voit painaa **Lopeta kysymys nyt**, ja tulostaululla **Päätä peli tässä**,
    jos haluat lopettaa aiemmin (ks. *Keskeyttäminen ja tauko*).
 6. Viimeisen kysymyksen jälkeen paina **Näytä lopullinen tulostaulu**.

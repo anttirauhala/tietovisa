@@ -130,6 +130,35 @@ body::after {
   }
 }
 
+/**
+ * Seuraavan kysymyksen lähtölaskennan numero (5, 4, 3, 2, 1). Numero ponnahtaa
+ * esiin ja hiipuu hieman ennen seuraavaa numeroa. Animaation kesto on sama
+ * kuin laskennan askel (1 s), joten numeron vaihtuessa edellinen animaatio
+ * on juuri ehtinyt päättyä.
+ */
+@keyframes tv-count-pop {
+  0% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+}
+
+.animate-count-pop {
+  animation: tv-count-pop 1s ease-out both;
+}
+
 @keyframes tv-confetti-fall {
   0% {
     transform: translate3d(0, -12vh, 0) rotate(0deg);
@@ -317,6 +346,7 @@ body::after {
   .animate-pop,
   .animate-slide-up,
   .animate-pulse-soft,
+  .animate-count-pop,
   .animate-hub-bounce,
   .animate-hub-spin,
   .animate-robot-hop,

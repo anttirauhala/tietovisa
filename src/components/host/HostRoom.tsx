@@ -20,6 +20,15 @@ import { isRevealedQuestion } from "@/lib/game/types";
 type HostAction = "start" | "reveal" | "leaderboard" | "next" | "end-question" | "finish";
 
 /**
+ * Juontajan lähtölaskenta ennen seuraavaa kysymystä: numerot 5, 4, 3, 2 ja 1
+ * näkyvät sekunnin kukin, ja viimeisen numeron jälkeen kuluu vielä sekunti
+ * ennen siirtymää. Laskuri on vain juontajan selaimessa, joten pelaajien
+ * näkymä muuttuu vasta, kun palvelin vaihtaa tilan.
+ */
+const NEXT_QUESTION_COUNTDOWN_SECONDS = 5;
+const NEXT_QUESTION_COUNTDOWN_STEP_MS = 1000;
+
+/**
  * Juontajan pelinäkymä. Pelin etenemistä hallitaan palvelimella: jokainen
  * painike lähettää komennon palvelimelle, joka tarkistaa nykyisen tilan ja
  * sallitun siirtymän.
@@ -27,6 +36,9 @@ type HostAction = "start" | "reveal" | "leaderboard" | "next" | "end-question" |
  * Kun kysymyksen määräaika päättyy, juontajan selain siirtää kysymyksen
  * automaattisesti tulosvaiheeseen. Sama onnistuu myös käsin painikkeesta,
  * joten peli ei jää jumiin, vaikka selain ehtisi nukkua.
+ *
+ * Seuraavan kysymyksen käynnistys näyttää juontajalle 5–1-laskennan ennen
+ * palvelinkomentoa, jotta ehtii valmistautua seuraavaan kysymykseen.
  */
 export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: string | null }) {
   const { state, error, isLoading, clockOffsetMs, refresh } = useRoomState<HostState>({
@@ -38,6 +50,14 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
 
   const [busy, setBusy] = useState(false);
   const [commandError, setCommandError] = useState<string | null>(null);
+  /**
+   * Käynnissä oleva lähtölaskenta. Kysymysindeksi sidotaan mukaan, jotta
+   * vanhentunut laskuri ei voi näkyä tai jatkua seuraavalla tulostaululla.
+   */
+  const [nextQuestionCountdown, setNextQuestionCountdown] = useState<{
+    questionIndex: number;
+    seconds: number;
+  } | null>(null);
   const revealedIndexRef = useRef<number | null>(null);
 
   const room = state?.room ?? null;
@@ -70,6 +90,73 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
     },
     [hostToken, refresh, roomId],
   );
+
+  // Käynnistää lähtölaskennan aina viidestä; painike on laskennan ajan pois käytöstä.
+  const startNextQuestionCountdown = useCallback(() => {
+    if (!room) {
+      return;
+    }
+
+    setNextQuestionCountdown({
+      questionIndex: room.currentQuestionIndex,
+      seconds: NEXT_QUESTION_COUNTDOWN_SECONDS,
+    });
+  }, [room]);
+
+  /**
+   * Viimeisen kysymyksen jälkeen siirrytään suoraan lopulliseen tulostauluun.
+   * Muulloin seuraava kysymys käynnistyy vasta 5–1-laskennan jälkeen.
+   */
+  const advance = useCallback(() => {
+    if (!room) {
+      return;
+    }
+
+    if (room.currentQuestionIndex >= room.questionCount - 1) {
+      void runCommand("next");
+      return;
+    }
+
+    startNextQuestionCountdown();
+  }, [room, runCommand, startNextQuestionCountdown]);
+
+  /*
+   * Laskuri on näkyvissä vain sen tulostaulun kohdalla, jolla se käynnistettiin.
+   * Näin esimerkiksi toisesta välilehdestä tehty siirtymä ei jätä laskuria
+   * roikkumaan eikä vanha laskuri jatku seuraavalla tulostaululla.
+   */
+  const countdownSeconds =
+    nextQuestionCountdown !== null &&
+    room?.status === "leaderboard" &&
+    nextQuestionCountdown.questionIndex === room.currentQuestionIndex
+      ? nextQuestionCountdown.seconds
+      : null;
+  const isCountingDown = countdownSeconds !== null;
+
+  /*
+   * Laskuri etenee sekunnin välein: 5 → 4 → 3 → 2 → 1. Viimeisen numeron
+   * jälkeen kuluu vielä sekunti, ennen kuin siirtymä tehdään palvelimelle.
+   */
+  useEffect(() => {
+    if (nextQuestionCountdown === null || countdownSeconds === null) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      if (countdownSeconds > 1) {
+        setNextQuestionCountdown({
+          questionIndex: nextQuestionCountdown.questionIndex,
+          seconds: countdownSeconds - 1,
+        });
+        return;
+      }
+
+      setNextQuestionCountdown(null);
+      void runCommand("next");
+    }, NEXT_QUESTION_COUNTDOWN_STEP_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [countdownSeconds, nextQuestionCountdown, runCommand]);
 
   // Automaattinen siirtymä tulosvaiheeseen määräajan jälkeen.
   useEffect(() => {
@@ -136,16 +223,21 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
       if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") {
         return;
       }
-      if (!primaryAction || busy) {
+      if (!primaryAction || busy || isCountingDown) {
         return;
       }
       event.preventDefault();
+      // Myös pikanäppäin kulkee saman lähtölaskennan kautta kuin painike.
+      if (primaryAction === "next") {
+        advance();
+        return;
+      }
       void runCommand(primaryAction);
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [busy, primaryAction, runCommand]);
+  }, [advance, busy, isCountingDown, primaryAction, runCommand]);
 
   if (!hostToken) {
     return (
@@ -243,8 +335,8 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
               players={state.players}
               questionIndex={room.currentQuestionIndex}
               questionCount={room.questionCount}
-              busy={busy}
-              onNext={() => void runCommand("next")}
+              busy={busy || isCountingDown}
+              onNext={advance}
               onFinishEarly={() => void runCommand("finish")}
             />
           ) : null}
@@ -252,6 +344,33 @@ export function HostRoom({ roomId, hostToken }: { roomId: string; hostToken: str
           {room.status === "finished" ? <FinishedStage players={state.players} /> : null}
         </div>
       )}
+
+      {countdownSeconds !== null ? <NextQuestionCountdown seconds={countdownSeconds} /> : null}
+    </div>
+  );
+}
+
+/**
+ * Juontajan lähtölaskenta seuraavan kysymyksen alla. Koko näkymä himmenee ja
+ * ruudun keskelle vaihtuu iso numero sekunnin välein. Laskuri on osa juontajan
+ * sivua, joten pelaajien näkymä ei muutu ennen palvelimen tilasiirtymää.
+ */
+function NextQuestionCountdown({ seconds }: { seconds: number }) {
+  return (
+    <div
+      role="status"
+      aria-live="assertive"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-night/50 backdrop-blur-[2px]"
+    >
+      <span className="sr-only">Seuraava kysymys alkaa {seconds} sekunnin kuluttua</span>
+      <span
+        // key käynnistää ponnahdusanimaation uudelleen jokaiselle numerolle.
+        key={seconds}
+        aria-hidden="true"
+        className="animate-count-pop text-[min(52vw,46vh)] leading-none font-black tabular-nums text-white drop-shadow-[0_18px_48px_rgba(0,0,0,0.6)]"
+      >
+        {seconds}
+      </span>
     </div>
   );
 }
