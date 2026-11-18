@@ -532,7 +532,7 @@ src/
 │  ├─ etag.ts                      Pelitilan ETag-tunniste (ehdollinen tilakysely)
 │  ├─ tokens.ts                    Tokenit, hashit ja PIN-koodit
 │  └─ rateLimit.ts                 Nopeusrajoitus
-├─ data/questions.json             Kysymykset (30 kpl)
+├─ data/questions.json             Kysymykset (35 kpl)
 ├─ test/                           PGlite-integraatiotestien apurit
 └─ (juuri) e2e/                    Playwright-selaintestit ja niiden apurit
 ```

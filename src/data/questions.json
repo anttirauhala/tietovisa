@@ -135,6 +135,51 @@
     "points": 1000
   },
   {
+    "id": "q88ac41de",
+    "category": "Hauskat kysymykset",
+    "question": "Kuinka monta luuta aikuisen ihmisen luurangossa on?",
+    "answers": ["106", "206", "306", "406"],
+    "correctAnswerIndex": 1,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "qabae5969",
+    "category": "Hauskat kysymykset",
+    "question": "Miksi flamingo on vaaleanpunainen?",
+    "answers": ["Sen ravinnon väriaineista", "Se syntyy vaaleanpunaisena", "Auringonvalosta", "Höyhenten rakenteesta"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q33aa6378",
+    "category": "Hauskat kysymykset",
+    "question": "Mikä on Maapallon syvin tunnettu kohta?",
+    "answers": ["Mariaanien hauta", "Puerto Ricon hauta", "Jaavan hauta", "Aleuttien hauta"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q17261c30",
+    "category": "Hauskat kysymykset",
+    "question": "Mikä on ainoa nisäkäs, joka osaa lentää?",
+    "answers": ["Lepakko", "Liito-orava", "Pingviini", "Delfiini"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
+    "id": "q4d8774b7",
+    "category": "Hauskat kysymykset",
+    "question": "Minkä värinen on kirahvin kieli?",
+    "answers": ["Sininen", "Vaaleanpunainen", "Keltainen", "Valkoinen"],
+    "correctAnswerIndex": 0,
+    "timeLimitSeconds": 15,
+    "points": 1000
+  },
+  {
     "id": "qb095e274",
     "category": "IT-ala",
     "question": "Mihin tarkoitukseen EURA-tietojärjestelmää käytetään Suomessa?",
