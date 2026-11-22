@@ -1,6 +1,6 @@
 # Pikkujouluvisa
 
-Kahoot-tyylinen, selaimessa pelattava reaaliaikainen tietovisa pikkujouluihin.
+Selaimessa pelattava reaaliaikainen tietovisa pikkujouluihin.
 
 - **Juontaja** avaa `/host` omalla tietokoneellaan, luo pelihuoneen ja näyttää liittymiskoodin ja
   QR-koodin projektorilta.
@@ -631,3 +631,24 @@ Täsmälleen samat pisteet ja oikeat vastaukset saaneet pelaajat saavat jaetun s
   peliä ei voi enää hallita – uusi peli pitää luoda.
 - **Pelaaja ei voi palata peliin uudella laitteella.** Istunto on sidottu selaimeen;
   uudelleenliittyminen onnistuu vain ennen pelin alkua.
+
+---
+
+## 14. Lisenssi ja sisällön alkuperä
+
+**Koodi.** Sovelluksen lähdekoodi on lisensoitu MIT-lisenssillä (ks. [`LICENSE`](./LICENSE)).
+Riippuvuudet noudattavat omia lisenssejään (MIT, Apache-2.0, LGPL); tarkat versiot ja
+lisenssit löytyvät tiedostosta `package-lock.json`.
+
+**Kuvat.** `public/`-hakemiston kuvat (robottimaskotit ja taustakuva) on tuotettu OpenAI:n
+gpt-image-mallilla 8.11.2026. Kuvien PNG-metatiedoissa on C2PA-allekirjoitus
+(`softwareAgent: ChatGPT`, `digitalSourceType: trainedAlgorithmicMedia`), joten alkuperä on
+jäljitettävissä. Kuvapankkikuvia tai muuta kolmannen osapuolen kuvamateriaalia ei käytetä.
+Tarkistus esimerkiksi: `strings public/robot.png | grep -i c2pa`.
+
+**Kysymykset.** `src/data/questions.json` sisältää 35 tätä projektia varten laadittua
+kysymystä. Kysymystekstit ovat lyhyitä ja vastaukset yleissivistäviä faktoja, eikä mukana ole
+kolmannen osapuolen kysymyspankkien sisältöä.
+
+**Äänet ja fontit.** Sovellus ei käytä äänitiedostoja eikä ladattavia fontteja; typografia
+perustuu käyttöjärjestelmän järjestelmäfontteihin (ks. `src/app/globals.css`).

@@ -1,8 +1,8 @@
-# Rakenna Kahoot-tyylinen pikkujouluvisa
+# Rakenna reaaliaikainen pikkujouluvisa
 
 ## 1. Rooli ja tavoite
 
-Toimi kokeneena full-stack-kehittäjänä ja rakenna täysin toimiva, selaimessa pelattava Kahoot-tyylinen tietovisasovellus pikkujouluihin.
+Toimi kokeneena full-stack-kehittäjänä ja rakenna täysin toimiva, selaimessa pelattava reaaliaikainen tietovisasovellus pikkujouluihin.
 
 Tämä ei ole pelkkä UI-prototyyppi. Toteuta toimiva monen pelaajan järjestelmä, jossa:
 
@@ -101,7 +101,7 @@ Voit yhdistää tai yksinkertaistaa reittejä, jos se tekee toteutuksesta luotet
 
 ## 4. Visuaalinen suunnittelu
 
-Tee käyttöliittymästä kirkas, värikäs ja energinen. Sen tulee muistuttaa modernia live-tietovisapeliä, mutta älä kopioi Kahootin logoa tai brändi-ilmettä sellaisenaan.
+Tee käyttöliittymästä kirkas, värikäs ja energinen. Sen tulee muistuttaa modernia live-tietovisapeliä, mutta ilmeen pitää olla oma: älä kopioi minkään tietovisapalvelun logoa tai brändi-ilmettä sellaisenaan.
 
 ### Visuaalinen tyyli
 

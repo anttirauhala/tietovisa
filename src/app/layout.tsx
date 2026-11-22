@@ -5,7 +5,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Pikkujouluvisa",
   description:
-    "Kahoot-tyylinen reaaliaikainen tietovisa pikkujouluihin: juontaja projektorille, pelaajat omille puhelimille.",
+    "Reaaliaikainen tietovisa pikkujouluihin: juontaja projektorille, pelaajat omille puhelimille.",
 };
 
 export const viewport: Viewport = {

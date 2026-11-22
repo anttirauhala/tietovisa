@@ -2,6 +2,7 @@
   "name": "tietovisa",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "engines": {
     "node": ">=24.22.1"
   },
