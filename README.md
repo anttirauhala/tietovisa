@@ -10,6 +10,8 @@ Selaimessa pelattava reaaliaikainen tietovisa pikkujouluihin.
   lähetä pelaajan selaimeen ennen kuin kysymys on päättynyt.
 - Tulos- ja tulostaulunäkymät päivittyvät automaattisesti kaikilla laitteilla.
 
+  ![Etusivu](etusivu.png)
+
 ---
 
 ## 1. Vaatimukset
